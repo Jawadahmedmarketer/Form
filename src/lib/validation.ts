@@ -1,0 +1,92 @@
+import { z } from "zod";
+import { SERVICE_OPTIONS } from "@/config/services";
+
+const serviceIds = SERVICE_OPTIONS.map((service) => service.id) as [string, ...string[]];
+
+const optionalText = z.string().trim().max(2000);
+const requiredText = z.string().trim().min(1, "This field is required.").max(200);
+
+export const phoneSchema = z
+  .string()
+  .trim()
+  .min(7, "Enter a valid phone number.")
+  .max(25, "Enter a valid phone number.")
+  .regex(/^\+?[0-9\s().-]{7,25}$/, "Enter a valid US or international phone number.");
+
+export const signAgreementSchema = z
+  .object({
+    firstName: requiredText.max(80),
+    lastName: requiredText.max(80),
+    businessName: optionalText,
+    email: z.string().trim().email("Enter a valid email address.").max(160),
+    phone: phoneSchema,
+    businessAddress: optionalText,
+    taxPeriod: optionalText,
+    agreementDate: z.string().trim().min(1, "Agreement date is required."),
+    businessesCovered: z.string().trim().max(4000),
+    selectedServices: z
+      .array(z.enum(serviceIds))
+      .min(1, "Select at least one service."),
+    otherService: optionalText,
+    serviceDescription: z.string().trim().max(4000),
+    serviceStartDate: optionalText,
+    serviceEndDate: optionalText,
+    setupFee: optionalText,
+    monthlyFee: optionalText,
+    paymentSchedule: optionalText,
+    paymentMethod: optionalText,
+    acceptedTerms: z.boolean().refine((value) => value === true, {
+      message: "You must accept the terms of this agreement.",
+    }),
+    clientSignature: z
+      .string()
+      .min(80, "A signature is required.")
+      .refine((value) => value.startsWith("data:image/png;base64,"), "Signature must be a PNG image."),
+    clientPrintedName: requiredText.max(120),
+    clientTitle: optionalText,
+    clientSignedDate: z.string().trim().min(1, "Signature date is required."),
+  })
+  .superRefine((value, ctx) => {
+    if (value.selectedServices.includes("other") && !value.otherService.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["otherService"],
+        message: "Describe the other service.",
+      });
+    }
+  });
+
+export type SignAgreementInput = z.infer<typeof signAgreementSchema>;
+
+export const createAgreementSchema = z.object({
+  firstName: z.string().trim().max(80).optional().default(""),
+  lastName: z.string().trim().max(80).optional().default(""),
+  businessName: z.string().trim().max(160).optional().default(""),
+  email: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || z.string().email().safeParse(value).success, "Enter a valid email address.")
+    .optional()
+    .default(""),
+  phone: z.string().trim().max(25).optional().default(""),
+  businessAddress: z.string().trim().max(2000).optional().default(""),
+  taxPeriod: z.string().trim().max(200).optional().default(""),
+  agreementDate: z.string().trim().optional().default(""),
+  businessesCovered: z.string().trim().max(4000).optional().default(""),
+  selectedServices: z.array(z.enum(serviceIds)).optional().default([]),
+  otherService: z.string().trim().max(2000).optional().default(""),
+  serviceDescription: z.string().trim().max(4000).optional().default(""),
+  serviceStartDate: z.string().trim().optional().default(""),
+  serviceEndDate: z.string().trim().optional().default("Ongoing — no fixed end date"),
+  setupFee: z.string().trim().max(80).optional().default(""),
+  monthlyFee: z.string().trim().max(80).optional().default(""),
+  paymentSchedule: z.string().trim().max(200).optional().default(""),
+  paymentMethod: z.string().trim().max(200).optional().default(""),
+  ghlContactId: z.string().trim().max(80).optional().default(""),
+  paymentUrl: z.string().trim().url().optional().or(z.literal("")).default(""),
+  expiresAt: z.string().trim().optional().default(""),
+  fieldLocks: z.record(z.enum(["editable", "prefilled_editable", "locked"])).optional(),
+  status: z.enum(["draft", "sent"]).optional().default("sent"),
+});
+
+export type CreateAgreementInput = z.infer<typeof createAgreementSchema>;

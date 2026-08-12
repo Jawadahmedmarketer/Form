@@ -1,0 +1,30 @@
+import type { FieldLockMode, FieldLocks } from "@/lib/supabase/types";
+
+export const DEFAULT_FIELD_LOCKS: Required<FieldLocks> = {
+  firstName: "prefilled_editable",
+  lastName: "prefilled_editable",
+  businessName: "prefilled_editable",
+  email: "prefilled_editable",
+  phone: "prefilled_editable",
+  businessAddress: "prefilled_editable",
+  taxPeriod: "prefilled_editable",
+  agreementDate: "prefilled_editable",
+  businessesCovered: "prefilled_editable",
+  selectedServices: "prefilled_editable",
+  otherService: "prefilled_editable",
+  serviceDescription: "prefilled_editable",
+  serviceStartDate: "prefilled_editable",
+  serviceEndDate: "prefilled_editable",
+  setupFee: "locked",
+  monthlyFee: "locked",
+  paymentSchedule: "locked",
+  paymentMethod: "locked",
+};
+
+export function mergeFieldLocks(locks?: FieldLocks | null): Required<FieldLocks> {
+  return { ...DEFAULT_FIELD_LOCKS, ...(locks ?? {}) };
+}
+
+export function isLocked(mode: FieldLockMode | undefined) {
+  return mode === "locked";
+}
