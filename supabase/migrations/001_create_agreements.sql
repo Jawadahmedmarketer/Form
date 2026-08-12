@@ -61,6 +61,9 @@ create table if not exists public.agreements (
   revoked_at timestamptz,
   sent_at timestamptz,
   viewed_at timestamptz,
+  email_status text,
+  email_sent_at timestamptz,
+  email_error text,
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -115,3 +118,5 @@ set
   allowed_mime_types = excluded.allowed_mime_types;
 
 -- Storage remains private. Do not add public SELECT policies.
+
+grant select, insert, update, delete on table public.agreements to service_role;

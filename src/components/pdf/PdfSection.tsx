@@ -54,7 +54,7 @@ export const pdfStyles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontFamily: "Times-Bold",
-    color: pdfColors.text,
+    color: "#2563EB",
   },
   paragraph: {
     marginBottom: 6,
@@ -171,6 +171,7 @@ export function PdfLegalBlocks({
   blocks: Array<
     | { type: "paragraph"; text: string }
     | { type: "list"; items: string[] }
+    | { type: "columns"; items: string[] }
     | { type: "callout"; text: string; emphasis?: string }
   >;
 }) {
@@ -184,7 +185,7 @@ export function PdfLegalBlocks({
             </Text>
           );
         }
-        if (block.type === "list") {
+        if (block.type === "list" || block.type === "columns") {
           return (
             <View key={index}>
               {block.items.map((item) => (

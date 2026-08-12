@@ -3,6 +3,7 @@ import { COMPANY, COMPANY_ADDRESS_SINGLE_LINE } from "@/config/company";
 export type LegalBlock =
   | { type: "paragraph"; text: string }
   | { type: "list"; items: string[] }
+  | { type: "columns"; items: string[] }
   | { type: "callout"; text: string; emphasis?: string };
 
 export type LegalSection = {
@@ -59,16 +60,14 @@ export const LEGAL_SECTIONS: LegalSection[] = [
     title: "FEES & PAYMENT TERMS",
     blocks: [
       {
-        type: "paragraph",
-        text: "Fees for the selected services are as stated in this Agreement. Client agrees to pay all fees when due. The Total Cost / Setup Fee is due according to the payment schedule specified above. Recurring monthly fees, if applicable, will be billed in accordance with the stated payment schedule and payment method.",
-      },
-      {
-        type: "paragraph",
-        text: "Client authorizes Unified Tax Group to invoice Client using the payment method designated in this Agreement. Late or failed payments may result in suspension of services until the account is brought current. Client remains responsible for fees for work already performed.",
-      },
-      {
-        type: "paragraph",
-        text: "Third-party costs (including government filing fees, software subscription passthroughs, postage, and similar out-of-pocket expenses) are not included unless expressly stated in this Agreement and will be billed separately if incurred with Client’s knowledge.",
+        type: "list",
+        items: [
+          "Fees for the selected services are as stated in this Agreement. Client agrees to pay all fees when due.",
+          "The Total Cost / Setup Fee is due according to the payment schedule specified above. Recurring monthly fees, if applicable, will be billed in accordance with the stated payment schedule and payment method.",
+          "Client authorizes Unified Tax Group to invoice Client using the payment method designated in this Agreement.",
+          "Late or failed payments may result in suspension of services until the account is brought current. Client remains responsible for fees for work already performed.",
+          "Government filing fees, software subscriptions, postage, and similar third-party costs are not included unless expressly stated and will be billed separately if incurred with Client’s knowledge.",
+        ],
       },
     ],
   },
@@ -79,11 +78,24 @@ export const LEGAL_SECTIONS: LegalSection[] = [
     blocks: [
       {
         type: "paragraph",
-        text: "Setup fees and fees for work already commenced or completed are non-refundable. Monthly service fees are earned as services are provided for the applicable billing period.",
+        text: "Because professional services require time, labor, and dedicated resources, payments are generally non-refundable once work has commenced. The following fees are non-refundable once work has commenced:",
+      },
+      {
+        type: "columns",
+        items: [
+          "Setup fees",
+          "Catch-up bookkeeping fees",
+          "Cleanup fees",
+          "Monthly bookkeeping fees",
+          "Tax preparation fees",
+          "Advisory fees",
+          "Completed service fees",
+          "Work-in-progress fees",
+        ],
       },
       {
         type: "paragraph",
-        text: "If Client cancels this Agreement in accordance with the termination provisions below, Client will not be entitled to a refund of fees for services already performed, onboarding or setup work already completed, or any period already billed. Any prepaid unused monthly period after a proper termination effective date may be addressed at the Company’s reasonable discretion.",
+        text: "Refunds for services not yet started are at the sole discretion of Unified Tax Group. Client agrees to contact the Company in writing before initiating a payment dispute or chargeback.",
       },
       {
         type: "paragraph",

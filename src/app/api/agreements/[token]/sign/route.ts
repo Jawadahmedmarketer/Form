@@ -6,6 +6,7 @@ import {
   getAgreementAccessState,
   getAgreementByToken,
   markAgreementSigned,
+  updateEmailStatus,
   updateGhlSync,
   uploadSignature,
   uploadSignedPdf,
@@ -14,6 +15,7 @@ import { syncSignedAgreementToGhl } from "@/lib/ghl";
 import { fingerprintAgreementContent, sha256Hex } from "@/lib/hashing";
 import { getClientIp, getUserAgent, maskIp } from "@/lib/ip";
 import { logError, logInfo } from "@/lib/logger";
+import { sendSignedAgreementEmail, signedRecordUrl } from "@/lib/email";
 import { generateAgreementPdf } from "@/lib/pdf";
 import { rateLimit } from "@/lib/rate-limit";
 import { dataUrlToBuffer, getAuthorizedSignatureDataUrl } from "@/lib/representative-signature";
@@ -208,6 +210,26 @@ export async function POST(
     });
 
     logInfo("agreement.signed", { agreementId: signed.id });
+
+    try {
+      const emailResult = await sendSignedAgreementEmail({
+        to: values.email,
+        clientName: values.clientPrintedName || `${values.firstName} ${values.lastName}`.trim(),
+        filename: pdfFilename,
+        pdf,
+        recordUrl: signedRecordUrl(token),
+      });
+      await updateEmailStatus(signed.id, {
+        email_status: emailResult.skipped ? "skipped" : "sent",
+        email_sent_at: emailResult.skipped ? null : new Date().toISOString(),
+        email_error: null,
+      });
+    } catch (error) {
+      await updateEmailStatus(signed.id, {
+        email_status: "failed",
+        email_error: error instanceof Error ? error.message : "Email failed",
+      });
+    }
 
     const ghl = await syncSignedAgreementToGhl(signed, pdf);
     await updateGhlSync(signed.id, {

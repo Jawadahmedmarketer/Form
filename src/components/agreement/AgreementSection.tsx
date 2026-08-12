@@ -12,7 +12,7 @@ export function AgreementSection({
   return (
     <section className="mt-8">
       <div className="border-l-4 border-[#2563EB] bg-[#f3f4f6] px-4 py-3">
-        <h2 className="text-[15px] font-bold tracking-wide text-[#111827]">
+        <h2 className="text-[15px] font-bold tracking-wide text-[#2563EB]">
           {number}. {title}
         </h2>
       </div>

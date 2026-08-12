@@ -9,7 +9,16 @@ export function LegalBlocks({ blocks }: { blocks: LegalBlock[] }) {
         }
         if (block.type === "list") {
           return (
-            <ul key={index} className="list-disc space-y-1 pl-5">
+            <ul key={index} className="list-disc space-y-1 pl-5 text-[#334155]">
+              {block.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          );
+        }
+        if (block.type === "columns") {
+          return (
+            <ul key={index} className="grid list-disc gap-x-8 gap-y-1 pl-5 text-[#334155] sm:grid-cols-2">
               {block.items.map((item) => (
                 <li key={item}>{item}</li>
               ))}

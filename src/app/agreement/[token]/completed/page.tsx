@@ -1,22 +1,17 @@
-import { AgreementSuccess } from "@/components/agreement/AgreementSuccess";
-import { DocumentShell } from "@/components/agreement/DocumentShell";
+import { CompletedAgreementView } from "@/components/agreement/CompletedAgreementView";
 import { InvalidLink } from "@/components/agreement/InvalidLink";
-import { getAgreementAccessState, getAgreementByToken } from "@/lib/agreement";
 import { getPaymentUrl } from "@/config/company";
+import {
+  downloadStorageDataUrl,
+  getAgreementAccessState,
+  getAgreementByToken,
+} from "@/lib/agreement";
+import { formatLongDate } from "@/lib/dates";
+import { getAuthorizedSignatureDataUrl } from "@/lib/representative-signature";
+import { SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import { isLikelyToken } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
-
-function formatSignedDate(value: string | null) {
-  if (!value) return "the agreement date";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 export default async function CompletedAgreementPage({
   params,
@@ -58,14 +53,22 @@ export default async function CompletedAgreementPage({
     [row.first_name, row.last_name].filter(Boolean).join(" ") ||
     "the client";
 
+  const [clientSignatureDataUrl, storedRepSignature] = await Promise.all([
+    downloadStorageDataUrl(SIGNATURE_BUCKET, row.client_signature_path, "image/png"),
+    downloadStorageDataUrl(SIGNATURE_BUCKET, row.representative_signature_path, "image/png"),
+  ]);
+  const representativeSignatureDataUrl =
+    storedRepSignature || (await getAuthorizedSignatureDataUrl());
+
   return (
-    <DocumentShell>
-      <AgreementSuccess
-        clientName={clientName}
-        signedDate={formatSignedDate(row.signed_at || row.client_signed_date)}
-        downloadHref={`/api/agreements/${token}/download`}
-        paymentUrl={row.payment_url || getPaymentUrl() || undefined}
-      />
-    </DocumentShell>
+    <CompletedAgreementView
+      row={row}
+      clientName={clientName}
+      signedDate={formatLongDate(row.signed_at || row.client_signed_date) || "the agreement date"}
+      downloadHref={`/api/agreements/${token}/download`}
+      paymentUrl={row.payment_url || getPaymentUrl() || undefined}
+      clientSignatureDataUrl={clientSignatureDataUrl}
+      representativeSignatureDataUrl={representativeSignatureDataUrl}
+    />
   );
 }

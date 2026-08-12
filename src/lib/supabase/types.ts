@@ -88,6 +88,9 @@ export type AgreementRow = {
   revoked_at: string | null;
   sent_at: string | null;
   viewed_at: string | null;
+  email_status: string | null;
+  email_sent_at: string | null;
+  email_error: string | null;
   created_at: string;
   updated_at: string;
 };

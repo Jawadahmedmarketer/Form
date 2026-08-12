@@ -7,7 +7,7 @@ This app does **not** use GHL Forms or GHL Documents & Contracts for the custome
 ## Local setup
 
 1. Copy `.env.example` to `.env.local` and fill in values.
-2. In Supabase, run `supabase/migrations/001_create_agreements.sql`.
+2. In Supabase, run `supabase/migrations/001_create_agreements.sql`, then `002_agreement_email_status.sql` if the table already exists.
 3. Confirm private storage buckets `agreement-signatures` and `signed-agreements` exist.
 4. Replace `src/assets/authorized-signature.png` with Jawad Ahmed’s approved signature before production use.
 5. Install and run:
@@ -47,6 +47,8 @@ Or open `/admin`, enter `ADMIN_API_SECRET`, and create a prefilled agreement.
 | `NEXT_PUBLIC_APP_URL` | Public app URL, e.g. `https://agreements.unifiedtaxgroup.com` |
 | `ADMIN_API_SECRET` | Protects `/admin` create and GHL retry APIs |
 | `PAYMENT_URL` | Optional destination for the future Complete Payment button |
+| `RESEND_API_KEY` | Sends the signed PDF to the client after signing |
+| `EMAIL_FROM` | From address, e.g. `Unified Tax Group <info@unifiedtaxgroup.com>` |
 
 ## Supabase
 

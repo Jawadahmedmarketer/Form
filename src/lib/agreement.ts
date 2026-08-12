@@ -208,6 +208,37 @@ export async function downloadSignedPdf(pathName: string) {
   return Buffer.from(await data.arrayBuffer());
 }
 
+export async function downloadStorageDataUrl(
+  bucket: string,
+  pathName: string | null,
+  mimeType: string,
+) {
+  if (!pathName) return null;
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.storage.from(bucket).download(pathName);
+  if (error || !data) {
+    logError("storage.file_download_failed", { message: error?.message });
+    return null;
+  }
+  const buffer = Buffer.from(await data.arrayBuffer());
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
+}
+
+export async function updateEmailStatus(
+  id: string,
+  values: {
+    email_status: string;
+    email_sent_at?: string | null;
+    email_error?: string | null;
+  },
+) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("agreements").update(values).eq("id", id);
+  if (error) {
+    logError("agreement.email_status_update_failed", { agreementId: id, message: error.message });
+  }
+}
+
 export async function markAgreementSigned(id: string, values: Record<string, unknown>) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
