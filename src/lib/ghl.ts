@@ -120,8 +120,7 @@ export async function upsertGhlContact(row: AgreementRow, phase: GhlSyncPhase = 
 
   logInfo("ghl.contact_sync_started", { agreementId: row.id, phase });
 
-  const body: Record<string, unknown> = {
-    locationId,
+  const fields: Record<string, unknown> = {
     firstName: row.first_name || "",
     lastName: row.last_name || "",
     email: row.email || undefined,
@@ -134,7 +133,7 @@ export async function upsertGhlContact(row: AgreementRow, phase: GhlSyncPhase = 
     const updated = await ghlFetch(`/contacts/${row.ghl_contact_id}`, token, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(fields),
     });
     const contactId = extractContactId(updated) || row.ghl_contact_id;
     logInfo("ghl.contact_updated", { agreementId: row.id, ghlContactId: contactId });
@@ -144,7 +143,7 @@ export async function upsertGhlContact(row: AgreementRow, phase: GhlSyncPhase = 
   const upserted = await ghlFetch("/contacts/upsert", token, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ locationId, ...fields }),
   });
 
   const contactId = extractContactId(upserted);
@@ -462,7 +461,7 @@ export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
     };
 
     if (contactId && !contactResult.skipped) {
-      uploaded = await uploadGhlContactDocument(contactId, pdf, "Service Agreement — Signed.pdf");
+      uploaded = await uploadSignedPdfToGhl(contactId, pdf, "Service Agreement — Signed.pdf");
     }
 
     try {
