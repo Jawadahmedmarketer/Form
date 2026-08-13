@@ -26,9 +26,11 @@ export async function POST(
   await updateGhlSync(row.id, {
     ghl_contact_id: ghl.contactId,
     ghl_signed_document_id: ghl.documentId,
-    ghl_sync_status: ghl.ok ? (ghl.skipped ? "skipped" : "synced") : "failed",
-    ghl_synced_at: ghl.ok && !ghl.skipped ? new Date().toISOString() : null,
-    ghl_sync_error: ghl.ok ? null : ghl.error || "HighLevel sync failed",
+    ghl_sync_status: ghl.status,
+    ghl_document_destination: ghl.destination,
+    ghl_sync_note: ghl.note,
+    ghl_synced_at: ghl.status === "synced" ? new Date().toISOString() : null,
+    ghl_sync_error: ghl.status === "failed" ? ghl.note || ghl.error || "HighLevel sync failed" : null,
     ghl_webhook_status: ghl.webhookStatus,
   });
 

@@ -144,11 +144,16 @@ export function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={item.status} />
-                        {item.ghlDraftDocumentId ? (
-                          <p className="mt-1 text-[11px] text-slate-500">Draft sent to GHL</p>
+                        {item.ghlDocumentDestination === "custom_field" ||
+                        item.ghlDocumentDestination === "contact_documents" ? (
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            {item.ghlSignedDocumentId ? "Signed copy synced" : "Draft sent to GHL"}
+                          </p>
                         ) : null}
-                        {item.ghlSignedDocumentId ? (
-                          <p className="mt-1 text-[11px] text-emerald-700">Signed copy synced</p>
+                        {item.ghlSyncStatus === "partial" || item.ghlDocumentDestination === "media" ? (
+                          <p className="mt-1 text-[11px] text-amber-700">
+                            {item.ghlSyncNote || "File is in the GHL media library, not the contact Documents tab."}
+                          </p>
                         ) : null}
                       </td>
                       <td className="px-4 py-3 text-slate-600">

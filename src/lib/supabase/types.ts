@@ -14,6 +14,7 @@ export const GHL_SYNC_STATUSES = [
   "synced",
   "failed",
   "skipped",
+  "partial",
 ] as const;
 
 export type GhlSyncStatus = (typeof GHL_SYNC_STATUSES)[number];
@@ -84,6 +85,8 @@ export type AgreementRow = {
   ghl_webhook_status: string | null;
   ghl_draft_document_id: string | null;
   ghl_signed_document_id: string | null;
+  ghl_sync_note: string | null;
+  ghl_document_destination: string | null;
   field_locks: FieldLocks | null;
   payment_url: string | null;
   expires_at: string | null;

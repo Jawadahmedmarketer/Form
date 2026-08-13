@@ -151,43 +151,88 @@ export async function upsertGhlContact(row: AgreementRow, phase: GhlSyncPhase = 
   return { skipped: false as const, contactId };
 }
 
-function extractDocumentId(payload: unknown, fallback?: string | null) {
-  if (payload && typeof payload === "object") {
-    const data = payload as Record<string, unknown>;
-    const nested = data.file && typeof data.file === "object" ? (data.file as Record<string, unknown>) : null;
-    const id =
-      data.id ||
-      data.fileId ||
-      data.documentId ||
-      data.mediaId ||
-      nested?.id ||
-      nested?.fileId;
-    if (typeof id === "string" && id) return id;
-  }
-  return fallback || null;
+export type GhlDocumentDestination = "custom_field" | "contact_documents" | "media";
+
+export type GhlDocumentUploadResult = {
+  skipped: boolean;
+  documentId: string | null;
+  destination: GhlDocumentDestination | null;
+  contactVisible: boolean;
+  note: string | null;
+};
+
+function responseKeys(payload: unknown) {
+  if (!payload || typeof payload !== "object") return typeof payload;
+  return Object.keys(payload as object).slice(0, 12).join(",");
+}
+
+function extractMediaOrDocumentId(payload: unknown) {
+  if (!payload || typeof payload !== "object") return null;
+  const data = payload as Record<string, unknown>;
+  const nested = data.file && typeof data.file === "object" ? (data.file as Record<string, unknown>) : null;
+  const id = data.fileId || data.documentId || data.mediaId || nested?.fileId || nested?.id;
+  return typeof id === "string" && id ? id : null;
 }
 
 function pdfBlob(pdf: Buffer, filename: string) {
   return new Blob([new Uint8Array(pdf)], { type: "application/pdf" });
 }
 
-export async function uploadSignedPdfToGhl(contactId: string, pdf: Buffer, filename: string) {
+async function probeContactDocumentsEndpoint(contactId: string, token: string, locationId: string, pdf: Buffer, filename: string) {
+  const form = new FormData();
+  form.append("file", pdfBlob(pdf, filename), filename);
+  form.append("name", filename);
+  form.append("locationId", locationId);
+
+  const response = await fetch(`${GHL_API_BASE}/contacts/${contactId}/documents`, {
+    method: "POST",
+    headers: ghlHeaders(token),
+    body: form,
+  });
+
+  logWarn("ghl.contact_documents_probe", {
+    httpStatus: response.status,
+    ok: response.ok,
+    reason: "This path is not an official HighLevel Documents-tab API.",
+  });
+
+  if (!response.ok) return null;
+  const json = await response.json().catch(() => null);
+  return extractMediaOrDocumentId(json);
+}
+
+export async function uploadSignedPdfToGhl(contactId: string, pdf: Buffer, filename: string): Promise<GhlDocumentUploadResult> {
   const { token, locationId } = getGhlConfig();
   const fileFieldId = getGhlFieldMapping().signedAgreementFile;
 
   if (!token || !locationId) {
-    return { skipped: true as const, documentId: null as string | null };
+    return {
+      skipped: true,
+      documentId: null,
+      destination: null,
+      contactVisible: false,
+      note: "HighLevel token or location is not configured.",
+    };
   }
   if (!fileFieldId) {
     logWarn("ghl.pdf_upload_skipped_missing_field", { ghlContactId: contactId });
-    return { skipped: true as const, documentId: null as string | null };
+    return {
+      skipped: true,
+      documentId: null,
+      destination: null,
+      contactVisible: false,
+      note: "GHL_SIGNED_AGREEMENT_CUSTOM_FIELD_ID is missing, so the contact file field cannot be used.",
+    };
   }
-
-  logInfo("ghl.pdf_upload_started", { ghlContactId: contactId });
 
   const fileId = crypto.randomUUID();
   const form = new FormData();
   form.append(`${fileFieldId}_${fileId}`, pdfBlob(pdf, filename), filename);
+
+  logInfo("ghl.custom_field_upload_started", {
+    endpoint: "/forms/upload-custom-files",
+    filename,
+  });
 
   const response = await fetch(
     `${GHL_API_BASE}/forms/upload-custom-files?contactId=${encodeURIComponent(contactId)}&locationId=${encodeURIComponent(locationId)}`,
@@ -207,69 +252,118 @@ export async function uploadSignedPdfToGhl(contactId: string, pdf: Buffer, filen
   }
 
   if (!response.ok) {
+    logError("ghl.custom_field_upload_failed", { httpStatus: response.status });
     throw new Error(text.slice(0, 300) || `HighLevel file upload failed (${response.status})`);
   }
 
-  logInfo("ghl.pdf_uploaded", { ghlContactId: contactId });
-  return { skipped: false as const, documentId: extractDocumentId(json, fileId) };
+  logInfo("ghl.custom_field_uploaded", {
+    endpoint: "/forms/upload-custom-files",
+    destination: "custom_field",
+    contactVisible: true,
+    responseKeys: responseKeys(json),
+    documentIdSource: "generated_file_id",
+  });
+
+  return {
+    skipped: false,
+    documentId: fileId,
+    destination: "custom_field",
+    contactVisible: true,
+    note: "Uploaded to the contact file custom field via /forms/upload-custom-files.",
+  };
 }
 
 export async function uploadGhlContactDocument(
   contactId: string,
   pdf: Buffer,
   filename: string,
-  options?: { allowCustomFieldFallback?: boolean },
-) {
+): Promise<GhlDocumentUploadResult> {
   const { token, locationId } = getGhlConfig();
   if (!token || !locationId) {
-    return { skipped: true as const, documentId: null as string | null };
+    return {
+      skipped: true,
+      documentId: null,
+      destination: null,
+      contactVisible: false,
+      note: "HighLevel token or location is not configured.",
+    };
   }
 
-  const blob = pdfBlob(pdf, filename);
-
   try {
-    const form = new FormData();
-    form.append("file", blob, filename);
-    form.append("name", filename);
-    form.append("locationId", locationId);
-    const json = await ghlFetch(`/contacts/${contactId}/documents`, token, {
-      method: "POST",
-      body: form,
-    });
-    const documentId = extractDocumentId(json);
-    logInfo("ghl.contact_document_uploaded", { ghlContactId: contactId, filename });
-    return { skipped: false as const, documentId };
+    const documentId = await probeContactDocumentsEndpoint(contactId, token, locationId, pdf, filename);
+    if (documentId) {
+      logInfo("ghl.contact_documents_uploaded", {
+        endpoint: "/contacts/{id}/documents",
+        destination: "contact_documents",
+      });
+      return {
+        skipped: false,
+        documentId,
+        destination: "contact_documents",
+        contactVisible: true,
+        note: "Uploaded via /contacts/{id}/documents.",
+      };
+    }
   } catch (error) {
     logWarn("ghl.contact_documents_unavailable", {
+      endpoint: "/contacts/{id}/documents",
       message: error instanceof Error ? error.message : "documents endpoint unavailable",
     });
   }
 
   try {
+    return await uploadSignedPdfToGhl(contactId, pdf, filename);
+  } catch (error) {
+    logWarn("ghl.custom_field_upload_unavailable", {
+      endpoint: "/forms/upload-custom-files",
+      message: error instanceof Error ? error.message : "custom field upload failed",
+    });
+  }
+
+  try {
     const form = new FormData();
-    form.append("file", blob, filename);
+    form.append("file", pdfBlob(pdf, filename), filename);
     form.append("name", filename);
     const json = await ghlFetch("/medias/upload-file", token, {
       method: "POST",
       body: form,
     });
-    const documentId = extractDocumentId(json);
-    logInfo("ghl.media_uploaded", { ghlContactId: contactId, filename });
-    if (documentId) {
-      return { skipped: false as const, documentId };
-    }
+    const documentId = extractMediaOrDocumentId(json);
+    logWarn("ghl.media_uploaded_not_on_contact", {
+      endpoint: "/medias/upload-file",
+      destination: "media",
+      contactVisible: false,
+      responseKeys: responseKeys(json),
+    });
+    return {
+      skipped: false,
+      documentId,
+      destination: "media",
+      contactVisible: false,
+      note: "File landed in the HighLevel media library, not the contact Documents tab. /forms/upload-custom-files did not succeed.",
+    };
   } catch (error) {
     logWarn("ghl.media_upload_unavailable", {
+      endpoint: "/medias/upload-file",
       message: error instanceof Error ? error.message : "media upload unavailable",
     });
   }
 
-  if (options?.allowCustomFieldFallback === false) {
-    return { skipped: true as const, documentId: null as string | null };
-  }
+  return {
+    skipped: true,
+    documentId: null,
+    destination: null,
+    contactVisible: false,
+    note: "No HighLevel file endpoint accepted the upload.",
+  };
+}
 
-  const fieldUpload = await uploadSignedPdfToGhl(contactId, pdf, filename);
-  return fieldUpload;
+function syncStatusForUpload(uploaded: GhlDocumentUploadResult, contactSkipped: boolean) {
+  if (contactSkipped) return "skipped" as const;
+  if (uploaded.contactVisible) return "synced" as const;
+  if (uploaded.documentId && uploaded.destination === "media") return "partial" as const;
+  if (uploaded.skipped) return "skipped" as const;
+  return "failed" as const;
 }
 
 export async function triggerGhlWebhook(row: AgreementRow, contactId: string | null) {
@@ -315,21 +409,37 @@ export async function syncDraftAgreementToGhl(row: AgreementRow, pdf: Buffer) {
   try {
     const contactResult = await upsertGhlContact(row, "draft");
     const contactId = contactResult.contactId || null;
-    let documentId: string | null = null;
+    let uploaded: GhlDocumentUploadResult = {
+      skipped: true,
+      documentId: null,
+      destination: null,
+      contactVisible: false,
+      note: contactResult.skipped ? "Contact sync was skipped." : "Draft PDF was not uploaded.",
+    };
 
     if (contactId && !contactResult.skipped) {
-      const uploaded = await uploadGhlContactDocument(
+      uploaded = await uploadGhlContactDocument(
         contactId,
         pdf,
         "Service Agreement — Draft (Unsigned).pdf",
       );
-      documentId = uploaded.skipped ? null : uploaded.documentId;
     }
 
+    const status = syncStatusForUpload(uploaded, contactResult.skipped);
+    logInfo("ghl.draft_sync_finished", {
+      agreementId: row.id,
+      status,
+      destination: uploaded.destination,
+      contactVisible: uploaded.contactVisible,
+    });
+
     return {
-      ok: true as const,
+      ok: status !== "failed",
       contactId,
-      documentId,
+      documentId: uploaded.documentId,
+      destination: uploaded.destination,
+      note: uploaded.note,
+      status,
       skipped: contactResult.skipped,
     };
   } catch (error) {
@@ -339,6 +449,9 @@ export async function syncDraftAgreementToGhl(row: AgreementRow, pdf: Buffer) {
       ok: false as const,
       contactId: row.ghl_contact_id,
       documentId: null,
+      destination: null,
+      note: message,
+      status: "failed" as const,
       error: message,
     };
   }
@@ -349,20 +462,16 @@ export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
     const contactResult = await upsertGhlContact(row, "signed");
     const contactId = contactResult.contactId || null;
     let webhookStatus = "skipped";
-    let documentId: string | null = null;
+    let uploaded: GhlDocumentUploadResult = {
+      skipped: true,
+      documentId: null,
+      destination: null,
+      contactVisible: false,
+      note: contactResult.skipped ? "Contact sync was skipped." : "Signed PDF was not uploaded.",
+    };
 
     if (contactId && !contactResult.skipped) {
-      const uploaded = await uploadGhlContactDocument(
-        contactId,
-        pdf,
-        "Service Agreement — Signed.pdf",
-        { allowCustomFieldFallback: false },
-      );
-      documentId = uploaded.skipped ? null : uploaded.documentId;
-      const fieldUpload = await uploadSignedPdfToGhl(contactId, pdf, "Service Agreement — Signed.pdf");
-      if (!documentId && !fieldUpload.skipped) {
-        documentId = fieldUpload.documentId;
-      }
+      uploaded = await uploadGhlContactDocument(contactId, pdf, "Service Agreement — Signed.pdf");
     }
 
     try {
@@ -376,10 +485,21 @@ export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
       });
     }
 
+    const status = syncStatusForUpload(uploaded, contactResult.skipped);
+    logInfo("ghl.signed_sync_finished", {
+      agreementId: row.id,
+      status,
+      destination: uploaded.destination,
+      contactVisible: uploaded.contactVisible,
+    });
+
     return {
-      ok: true as const,
+      ok: status !== "failed",
       contactId,
-      documentId,
+      documentId: uploaded.documentId,
+      destination: uploaded.destination,
+      note: uploaded.note,
+      status,
       webhookStatus,
       skipped: contactResult.skipped,
     };
@@ -390,6 +510,9 @@ export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
       ok: false as const,
       contactId: row.ghl_contact_id,
       documentId: null,
+      destination: null,
+      note: message,
+      status: "failed" as const,
       webhookStatus: "failed",
       error: message,
     };

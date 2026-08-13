@@ -156,6 +156,9 @@ export type AdminAgreementSummary = {
   url: string;
   ghlDraftDocumentId: string | null;
   ghlSignedDocumentId: string | null;
+  ghlSyncStatus: AgreementRow["ghl_sync_status"];
+  ghlSyncNote: string | null;
+  ghlDocumentDestination: string | null;
 };
 
 export async function listAgreements(limit = 200): Promise<AdminAgreementSummary[]> {
@@ -163,7 +166,7 @@ export async function listAgreements(limit = 200): Promise<AdminAgreementSummary
   const withDocs = await supabase
     .from("agreements")
     .select(
-      "public_token, first_name, last_name, email, status, created_at, ghl_draft_document_id, ghl_signed_document_id",
+      "public_token, first_name, last_name, email, status, created_at, ghl_draft_document_id, ghl_signed_document_id, ghl_sync_status, ghl_sync_note, ghl_document_destination",
     )
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -194,6 +197,11 @@ export async function listAgreements(limit = 200): Promise<AdminAgreementSummary
       "ghl_draft_document_id" in row ? ((row.ghl_draft_document_id as string | null) ?? null) : null,
     ghlSignedDocumentId:
       "ghl_signed_document_id" in row ? ((row.ghl_signed_document_id as string | null) ?? null) : null,
+    ghlSyncStatus:
+      "ghl_sync_status" in row ? ((row.ghl_sync_status as AgreementRow["ghl_sync_status"]) ?? null) : null,
+    ghlSyncNote: "ghl_sync_note" in row ? ((row.ghl_sync_note as string | null) ?? null) : null,
+    ghlDocumentDestination:
+      "ghl_document_destination" in row ? ((row.ghl_document_destination as string | null) ?? null) : null,
   }));
 }
 
@@ -317,16 +325,26 @@ export async function updateGhlSync(
     ghl_webhook_status?: string | null;
     ghl_draft_document_id?: string | null;
     ghl_signed_document_id?: string | null;
+    ghl_sync_note?: string | null;
+    ghl_document_destination?: string | null;
   },
 ) {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("agreements").update(values).eq("id", id);
   if (error) {
-    const { ghl_draft_document_id: _draft, ghl_signed_document_id: _signed, ...rest } = values;
-    if (_draft !== undefined || _signed !== undefined) {
-      const retry = await supabase.from("agreements").update(rest).eq("id", id);
-      if (!retry.error) return;
-    }
+    const {
+      ghl_draft_document_id: _draft,
+      ghl_signed_document_id: _signed,
+      ghl_sync_note: note,
+      ghl_document_destination: _dest,
+      ...rest
+    } = values;
+    const retry = await supabase.from("agreements").update({
+      ...rest,
+      ghl_sync_status: values.ghl_sync_status === "partial" ? "failed" : values.ghl_sync_status,
+      ghl_sync_error: values.ghl_sync_error || note || null,
+    }).eq("id", id);
+    if (!retry.error) return;
     logError("agreement.ghl_status_update_failed", { agreementId: id, message: error.message });
   }
 }
