@@ -73,7 +73,18 @@ export const createAgreementSchema = z.object({
   taxPeriod: z.string().trim().max(200).optional().default(""),
   agreementDate: z.string().trim().optional().default(""),
   businessesCovered: z.string().trim().max(4000).optional().default(""),
-  selectedServices: z.array(z.enum(serviceIds)).optional().default([]),
+  selectedServices: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+      return value;
+    }, z.array(z.enum(serviceIds)))
+    .optional()
+    .default([]),
   otherService: z.string().trim().max(2000).optional().default(""),
   serviceDescription: z.string().trim().max(4000).optional().default(""),
   serviceStartDate: z.string().trim().optional().default(""),

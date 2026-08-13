@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const denied = await requireAdminMutation(request);
+  const denied = await requireAdminMutation(request, { allowBearer: true });
   if (denied) return denied;
 
   let json: unknown;
