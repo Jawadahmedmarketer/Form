@@ -244,6 +244,7 @@ export async function uploadSignedPdfToGhl(contactId: string, pdf: Buffer, filen
       method: "POST",
       headers: ghlHeaders(token),
       body: form,
+      signal: AbortSignal.timeout(25_000),
     },
   );
 

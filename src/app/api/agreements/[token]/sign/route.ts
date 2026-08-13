@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { REPRESENTATIVE } from "@/config/company";
 import {
   buildPdfFilename,
@@ -23,7 +23,7 @@ import { isLikelyToken } from "@/lib/tokens";
 import { signAgreementSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -96,10 +96,12 @@ export async function POST(
       ? dataUrlToBuffer(representativeDataUrl).buffer
       : null;
 
-    const clientSignaturePath = await uploadSignature(claimed.id, "client", clientSignature.buffer);
-    const representativeSignaturePath = representativeBuffer
-      ? await uploadSignature(claimed.id, "representative", representativeBuffer)
-      : null;
+    const [clientSignaturePath, representativeSignaturePath] = await Promise.all([
+      uploadSignature(claimed.id, "client", clientSignature.buffer),
+      representativeBuffer
+        ? uploadSignature(claimed.id, "representative", representativeBuffer)
+        : Promise.resolve(null),
+    ]);
 
     const fingerprint = fingerprintAgreementContent({
       agreementId: claimed.id,
@@ -231,16 +233,29 @@ export async function POST(
       });
     }
 
-    const ghl = await syncSignedAgreementToGhl(signed, pdf);
-    await updateGhlSync(signed.id, {
-      ghl_contact_id: ghl.contactId,
-      ghl_signed_document_id: ghl.documentId,
-      ghl_sync_status: ghl.status,
-      ghl_document_destination: ghl.destination,
-      ghl_sync_note: ghl.note,
-      ghl_synced_at: ghl.status === "synced" ? new Date().toISOString() : null,
-      ghl_sync_error: ghl.status === "failed" ? ghl.note || ghl.error || "HighLevel sync failed" : null,
-      ghl_webhook_status: ghl.webhookStatus,
+    after(async () => {
+      try {
+        const ghl = await syncSignedAgreementToGhl(signed, pdf);
+        await updateGhlSync(signed.id, {
+          ghl_contact_id: ghl.contactId,
+          ghl_signed_document_id: ghl.documentId,
+          ghl_sync_status: ghl.status,
+          ghl_document_destination: ghl.destination,
+          ghl_sync_note: ghl.note,
+          ghl_synced_at: ghl.status === "synced" ? new Date().toISOString() : null,
+          ghl_sync_error: ghl.status === "failed" ? ghl.note || ghl.error || "HighLevel sync failed" : null,
+          ghl_webhook_status: ghl.webhookStatus,
+        });
+      } catch (error) {
+        logError("agreement.ghl_after_failed", {
+          agreementId: signed.id,
+          message: error instanceof Error ? error.message : "HighLevel sync failed",
+        });
+        await updateGhlSync(signed.id, {
+          ghl_sync_status: "failed",
+          ghl_sync_error: error instanceof Error ? error.message : "HighLevel sync failed",
+        });
+      }
     });
 
     return NextResponse.json({ ok: true, alreadySigned: false });

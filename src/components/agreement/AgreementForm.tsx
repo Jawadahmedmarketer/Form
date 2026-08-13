@@ -35,6 +35,20 @@ const PROGRESS_STEPS = [
   "Finalizing",
 ] as const;
 
+async function readSignResponse(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text) as { error?: string; alreadySigned?: boolean };
+    } catch {
+      return { error: text.slice(0, 240) || `Request failed (${response.status})` };
+    }
+  }
+  const snippet = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
+  return { error: snippet || `Request failed (${response.status})` };
+}
+
 export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState("");
@@ -102,7 +116,7 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      const payload = (await response.json()) as { error?: string; alreadySigned?: boolean };
+      const payload = await readSignResponse(response);
       if (!response.ok) {
         throw new Error(payload.error || "Unable to sign the agreement.");
       }
