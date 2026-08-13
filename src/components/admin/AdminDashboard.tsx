@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
+import { AgreementRowActions } from "@/components/admin/AgreementRowActions";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import type { AdminAgreementSummary } from "@/lib/agreement";
 import { AGREEMENT_STATUSES, type AgreementStatus } from "@/lib/supabase/types";
@@ -149,7 +149,7 @@ export function AdminDashboard() {
                         {new Date(item.createdAt).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <CopyLinkButton value={item.url} />
+                        <AgreementRowActions token={item.token} url={item.url} status={item.status} />
                       </td>
                     </tr>
                   );
