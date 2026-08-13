@@ -10,6 +10,7 @@ export type GhlFieldMapping = {
   setupFee?: string;
   monthlyFee?: string;
   signedAgreementFile?: string;
+  agreementLink?: string;
 };
 
 function envId(name: string) {
@@ -28,6 +29,7 @@ export function getGhlFieldMapping(): GhlFieldMapping {
     signedAgreementFile:
       envId("GHL_SIGNED_AGREEMENT_CUSTOM_FIELD_ID") ||
       envId("GHL_CF_SIGNED_AGREEMENT_FILE"),
+    agreementLink: envId("GHL_AGREEMENT_LINK_FIELD_ID"),
   };
 }
 

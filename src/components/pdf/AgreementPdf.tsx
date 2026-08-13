@@ -46,7 +46,6 @@ export type AgreementPdfData = {
   signedAtLabel: string;
   maskedIp: string;
   fingerprint: string;
-  variant?: "draft" | "signed";
 };
 
 function sectionByNumber(number: number) {
@@ -56,7 +55,6 @@ function sectionByNumber(number: number) {
 export function AgreementPdf({ data }: { data: AgreementPdfData }) {
   const feesLegal = sectionByNumber(4);
   const legalOnly = LEGAL_SECTIONS.filter((section) => section.number >= 5 && section.number <= 19);
-  const isDraft = data.variant === "draft";
 
   return (
     <Document
@@ -65,24 +63,6 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
       subject="Service Agreement"
     >
       <Page size="LETTER" style={pdfStyles.page}>
-        {isDraft ? (
-          <Text
-            fixed
-            style={{
-              position: "absolute",
-              top: 360,
-              left: 48,
-              right: 48,
-              textAlign: "center",
-              fontSize: 26,
-              fontFamily: "Times-Bold",
-              color: "#94a3b8",
-              opacity: 0.28,
-            }}
-          >
-            PENDING CLIENT SIGNATURE
-          </Text>
-        ) : null}
         <Text style={pdfStyles.brand}>{COMPANY.brandName.toUpperCase()}</Text>
         <Text style={pdfStyles.title}>SERVICE AGREEMENT</Text>
         <Text style={pdfStyles.intro}>{AGREEMENT_INTRO}</Text>
@@ -169,11 +149,7 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
           <View style={{ flex: 1 }}>
             <PdfSection number={20} title="CLIENT ACCEPTANCE">
               <Text style={pdfStyles.paragraph}>{CLIENT_ACCEPTANCE_TEXT}</Text>
-              <PdfSignature
-                label="CLIENT SIGNATURE"
-                dataUrl={isDraft ? null : data.clientSignatureDataUrl}
-                emptyLabel={isDraft ? "Pending Client Signature" : "Signature on file"}
-              />
+              <PdfSignature label="CLIENT SIGNATURE" dataUrl={data.clientSignatureDataUrl} />
               <View style={{ marginBottom: 8 }}>
                 <PdfField label="PRINTED NAME" value={data.clientPrintedName} />
               </View>
@@ -188,8 +164,7 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
               <Text style={pdfStyles.paragraph}>{COMPANY_ACCEPTANCE_TEXT}</Text>
               <PdfSignature
                 label="AUTHORIZED REPRESENTATIVE SIGNATURE"
-                dataUrl={isDraft ? null : data.representativeSignatureDataUrl}
-                emptyLabel={isDraft ? "Pending Client Signature" : "Signature on file"}
+                dataUrl={data.representativeSignatureDataUrl}
               />
               <View style={{ marginBottom: 8 }}>
                 <PdfField label="PRINTED NAME" value={data.representativeName} />
@@ -203,19 +178,10 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
         </View>
 
         <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb", paddingTop: 8 }}>
-          {isDraft ? (
-            <>
-              <Text style={{ fontFamily: "Times-Bold", marginBottom: 4 }}>Draft — Unsigned</Text>
-              <Text>This copy is pending client signature. It is not a signed agreement.</Text>
-            </>
-          ) : (
-            <>
-              <Text style={{ fontFamily: "Times-Bold", marginBottom: 4 }}>Electronic Signing Record</Text>
-              <Text>Electronically signed: {data.signedAtLabel}</Text>
-              <Text>IP Address: {data.maskedIp}</Text>
-              <Text>Document fingerprint (SHA-256): {data.fingerprint}</Text>
-            </>
-          )}
+          <Text style={{ fontFamily: "Times-Bold", marginBottom: 4 }}>Electronic Signing Record</Text>
+          <Text>Electronically signed: {data.signedAtLabel}</Text>
+          <Text>IP Address: {data.maskedIp}</Text>
+          <Text>Document fingerprint (SHA-256): {data.fingerprint}</Text>
         </View>
 
         <View style={pdfStyles.footer} fixed>

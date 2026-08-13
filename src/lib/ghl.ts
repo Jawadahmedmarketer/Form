@@ -6,6 +6,7 @@ import {
   getGhlFieldMapping,
 } from "@/config/ghl-fields";
 import { formatSelectedServices } from "@/config/services";
+import { getAppUrl } from "@/lib/agreement";
 import { logError, logInfo, logWarn } from "@/lib/logger";
 import type { AgreementRow } from "@/lib/supabase/types";
 
@@ -90,6 +91,10 @@ function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
     [mapping.selectedServices, selected],
     [mapping.setupFee, row.setup_fee || ""],
     [mapping.monthlyFee, row.monthly_fee || ""],
+    [
+      mapping.agreementLink,
+      row.public_token ? `${getAppUrl()}/agreement/${row.public_token}` : "",
+    ],
   ];
 
   for (const [id, value] of pairs) {
@@ -405,53 +410,39 @@ export async function triggerGhlWebhook(row: AgreementRow, contactId: string | n
   return { skipped: false as const };
 }
 
-export async function syncDraftAgreementToGhl(row: AgreementRow, pdf: Buffer) {
+export async function syncAgreementLinkToGhl(row: AgreementRow) {
   try {
     const contactResult = await upsertGhlContact(row, "draft");
     const contactId = contactResult.contactId || null;
-    let uploaded: GhlDocumentUploadResult = {
-      skipped: true,
-      documentId: null,
-      destination: null,
-      contactVisible: false,
-      note: contactResult.skipped ? "Contact sync was skipped." : "Draft PDF was not uploaded.",
-    };
+    const linkField = getGhlFieldMapping().agreementLink;
+    const note = contactResult.skipped
+      ? "Contact sync was skipped."
+      : linkField
+        ? "Signing link written to the HighLevel text field."
+        : "Contact synced. GHL_AGREEMENT_LINK_FIELD_ID is not set.";
+    const status = contactResult.skipped ? ("skipped" as const) : ("synced" as const);
 
-    if (contactId && !contactResult.skipped) {
-      uploaded = await uploadGhlContactDocument(
-        contactId,
-        pdf,
-        "Service Agreement — Draft (Unsigned).pdf",
-      );
-    }
-
-    const status = syncStatusForUpload(uploaded, contactResult.skipped);
-    logInfo("ghl.draft_sync_finished", {
+    logInfo("ghl.link_sync_finished", {
       agreementId: row.id,
       status,
-      destination: uploaded.destination,
-      contactVisible: uploaded.contactVisible,
+      hasLinkField: Boolean(linkField),
     });
 
     return {
-      ok: status !== "failed",
+      ok: true as const,
       contactId,
-      documentId: uploaded.documentId,
-      destination: uploaded.destination,
-      note: uploaded.note,
       status,
+      note,
       skipped: contactResult.skipped,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "HighLevel draft sync failed";
-    logError("ghl.draft_sync_failed", { agreementId: row.id, message });
+    const message = error instanceof Error ? error.message : "HighLevel link sync failed";
+    logError("ghl.link_sync_failed", { agreementId: row.id, message });
     return {
       ok: false as const,
       contactId: row.ghl_contact_id,
-      documentId: null,
-      destination: null,
-      note: message,
       status: "failed" as const,
+      note: message,
       error: message,
     };
   }
