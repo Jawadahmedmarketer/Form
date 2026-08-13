@@ -1,21 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAgreement, getAppUrl } from "@/lib/agreement";
+import { createAgreement, getAppUrl, listAgreements } from "@/lib/agreement";
+import { requireAdminMutation, requireAdminRead } from "@/lib/admin-auth";
+import { logError } from "@/lib/logger";
 import { createAgreementSchema } from "@/lib/validation";
 
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-}
+export async function GET(request: NextRequest) {
+  const denied = await requireAdminRead(request);
+  if (denied) return denied;
 
-function isAdmin(request: NextRequest) {
-  const secret = process.env.ADMIN_API_SECRET?.trim();
-  if (!secret) return false;
-  const header = request.headers.get("authorization") || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  return token === secret;
+  try {
+    const items = await listAgreements();
+    return NextResponse.json(
+      { ok: true, items },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
+    logError("admin.agreements_list_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    return NextResponse.json({ error: "Unable to load agreements." }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdmin(request)) return unauthorized();
+  const denied = await requireAdminMutation(request);
+  if (denied) return denied;
 
   let json: unknown;
   try {
@@ -32,13 +41,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const row = await createAgreement(parsed.data);
-  const url = `${getAppUrl()}/agreement/${row.public_token}`;
-
-  return NextResponse.json({
-    ok: true,
-    token: row.public_token,
-    url,
-    status: row.status,
-  });
+  try {
+    const row = await createAgreement(parsed.data);
+    const url = `${getAppUrl()}/agreement/${row.public_token}`;
+    return NextResponse.json({
+      ok: true,
+      token: row.public_token,
+      url,
+      status: row.status,
+    });
+  } catch (error) {
+    logError("admin.agreement_create_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    return NextResponse.json({ error: "Unable to create agreement." }, { status: 500 });
+  }
 }

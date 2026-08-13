@@ -77,7 +77,7 @@ export const createAgreementSchema = z.object({
   otherService: z.string().trim().max(2000).optional().default(""),
   serviceDescription: z.string().trim().max(4000).optional().default(""),
   serviceStartDate: z.string().trim().optional().default(""),
-  serviceEndDate: z.string().trim().optional().default("Ongoing — no fixed end date"),
+  serviceEndDate: z.string().trim().optional().default(""),
   setupFee: z.string().trim().max(80).optional().default(""),
   monthlyFee: z.string().trim().max(80).optional().default(""),
   paymentSchedule: z.string().trim().max(200).optional().default(""),
@@ -90,3 +90,42 @@ export const createAgreementSchema = z.object({
 });
 
 export type CreateAgreementInput = z.infer<typeof createAgreementSchema>;
+
+export const adminCreateFormSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "First name is required.").max(80),
+    lastName: z.string().trim().min(1, "Last name is required.").max(80),
+    businessName: z.string().trim().max(160),
+    email: z.string().trim().email("Enter a valid email address.").max(160),
+    phone: z.string().trim().max(25),
+    businessAddress: z.string().trim().max(2000),
+    taxPeriod: z.string().trim().max(200),
+    agreementDate: z.string().trim(),
+    businessesCovered: z.string().trim().max(4000),
+    selectedServices: z.array(z.enum(serviceIds)).min(1, "Select at least one service."),
+    otherService: z.string().trim().max(2000),
+    serviceDescription: z.string().trim().max(4000),
+    serviceStartDate: z.string().trim(),
+    serviceEndDate: z.string().trim(),
+    setupFee: z.string().trim().max(80),
+    monthlyFee: z.string().trim().max(80),
+    paymentSchedule: z.string().trim().max(200),
+    paymentMethod: z.string().trim().max(200),
+    ghlContactId: z.string().trim().max(80),
+    paymentUrl: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || z.string().url().safeParse(value).success, "Enter a valid URL."),
+    status: z.enum(["draft", "sent"]),
+  })
+  .superRefine((value, ctx) => {
+    if (value.selectedServices.includes("other") && !value.otherService.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["otherService"],
+        message: "Describe the other service.",
+      });
+    }
+  });
+
+export type AdminCreateFormInput = z.infer<typeof adminCreateFormSchema>;

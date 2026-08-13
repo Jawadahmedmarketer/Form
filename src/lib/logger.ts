@@ -14,6 +14,8 @@ function safeFields(fields?: LogFields) {
     "phone",
     "ip",
     "userAgent",
+    "password",
+    "secret",
   ]);
   const out: LogFields = {};
   for (const [key, value] of Object.entries(fields)) {

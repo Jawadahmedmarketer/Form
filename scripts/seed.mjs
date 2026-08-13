@@ -35,7 +35,7 @@ const { data, error } = await supabase
     monthly_fee: "$217/month",
     payment_schedule: "Setup due on signing; monthly thereafter",
     payment_method: "Card or ACH",
-    service_end_date: "Ongoing — no fixed end date",
+    service_end_date: null,
     representative_name: "Jawad Ahmed",
     representative_title: "CEO",
     sent_at: new Date().toISOString(),

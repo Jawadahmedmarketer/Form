@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { downloadSignedPdf, getAgreementByToken, updateGhlSync } from "@/lib/agreement";
+import { requireAdminMutation } from "@/lib/admin-auth";
 import { syncSignedAgreementToGhl } from "@/lib/ghl";
 import { isLikelyToken } from "@/lib/tokens";
-
-function isAdmin(request: NextRequest) {
-  const secret = process.env.ADMIN_API_SECRET?.trim();
-  if (!secret) return false;
-  const header = request.headers.get("authorization") || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  return token === secret;
-}
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ token: string }> },
 ) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const denied = await requireAdminMutation(request, { allowBearer: true });
+  if (denied) return denied;
 
   const { token } = await context.params;
   if (!isLikelyToken(token)) {

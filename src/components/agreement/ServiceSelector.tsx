@@ -3,6 +3,10 @@
 import { SERVICE_OPTIONS } from "@/config/services";
 import { FormField, TextArea, TextInput } from "@/components/agreement/FormField";
 
+function toDateInputValue(value: string) {
+  return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : "";
+}
+
 export function ServiceSelector({
   selected,
   onToggle,
@@ -69,33 +73,30 @@ export function ServiceSelector({
             onChange={(event) => onOtherService(event.target.value)}
           />
         </FormField>
+        <FormField label="Service Description / Notes">
+          <TextArea
+            value={serviceDescription}
+            disabled={locked}
+            onChange={(event) => onServiceDescription(event.target.value)}
+          />
+        </FormField>
         <FormField label="Service Start Date">
           <TextInput
             type="date"
-            value={serviceStartDate}
+            value={toDateInputValue(serviceStartDate)}
             disabled={locked}
             onChange={(event) => onServiceStartDate(event.target.value)}
           />
         </FormField>
+        <FormField label="Service End Date">
+          <TextInput
+            type="date"
+            value={toDateInputValue(serviceEndDate)}
+            disabled={locked}
+            onChange={(event) => onServiceEndDate(event.target.value)}
+          />
+        </FormField>
       </div>
-      <FormField label="Service Description / Notes">
-        <TextArea
-          value={serviceDescription}
-          disabled={locked}
-          onChange={(event) => onServiceDescription(event.target.value)}
-        />
-      </FormField>
-      <FormField label="Service End Date">
-        <TextInput
-          value={serviceEndDate}
-          disabled={locked}
-          placeholder="Ongoing — no fixed end date"
-          onChange={(event) => onServiceEndDate(event.target.value)}
-        />
-        <p className="mt-1 text-xs text-[#475569]">
-          Date or text is allowed, for example: Ongoing — no fixed end date
-        </p>
-      </FormField>
     </div>
   );
 }

@@ -55,7 +55,7 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
       otherService: agreement.otherService,
       serviceDescription: agreement.serviceDescription,
       serviceStartDate: agreement.serviceStartDate,
-      serviceEndDate: agreement.serviceEndDate || "Ongoing — no fixed end date",
+      serviceEndDate: agreement.serviceEndDate,
       setupFee: agreement.setupFee,
       monthlyFee: agreement.monthlyFee,
       paymentSchedule: agreement.paymentSchedule,
@@ -212,37 +212,39 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
         </AgreementSection>
       ))}
 
-      <AgreementSection number={20} title="CLIENT ACCEPTANCE">
-        <p className="mb-5 text-[15px] leading-7 text-[#111827]">{CLIENT_ACCEPTANCE_TEXT}</p>
-        <ClientAcceptance
-          accepted={Boolean(watch("acceptedTerms"))}
-          onAccepted={(value) => setValue("acceptedTerms", value, { shouldValidate: true })}
-          printedName={watch("clientPrintedName")}
-          onPrintedName={(value) => setValue("clientPrintedName", value)}
-          title={watch("clientTitle")}
-          onTitle={(value) => setValue("clientTitle", value)}
-          date={watch("clientSignedDate")}
-          onDate={(value) => setValue("clientSignedDate", value)}
-          onSignature={(value) => setValue("clientSignature", value, { shouldValidate: true })}
-          disabled={submitting}
-          errors={{
-            acceptedTerms: errors.acceptedTerms?.message,
-            clientSignature: errors.clientSignature?.message,
-            clientPrintedName: errors.clientPrintedName?.message,
-            clientSignedDate: errors.clientSignedDate?.message,
-          }}
-        />
-      </AgreementSection>
+      <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
+        <AgreementSection number={20} title="CLIENT ACCEPTANCE" className="mt-8 lg:mt-8">
+          <p className="mb-5 text-[15px] leading-7 text-[#111827]">{CLIENT_ACCEPTANCE_TEXT}</p>
+          <ClientAcceptance
+            accepted={Boolean(watch("acceptedTerms"))}
+            onAccepted={(value) => setValue("acceptedTerms", value, { shouldValidate: true })}
+            printedName={watch("clientPrintedName")}
+            onPrintedName={(value) => setValue("clientPrintedName", value)}
+            title={watch("clientTitle")}
+            onTitle={(value) => setValue("clientTitle", value)}
+            date={watch("clientSignedDate")}
+            onDate={(value) => setValue("clientSignedDate", value)}
+            onSignature={(value) => setValue("clientSignature", value, { shouldValidate: true })}
+            disabled={submitting}
+            errors={{
+              acceptedTerms: errors.acceptedTerms?.message,
+              clientSignature: errors.clientSignature?.message,
+              clientPrintedName: errors.clientPrintedName?.message,
+              clientSignedDate: errors.clientSignedDate?.message,
+            }}
+          />
+        </AgreementSection>
 
-      <AgreementSection number={21} title="UNIFIED TAX GROUP ACCEPTANCE">
-        <p className="mb-5 text-[15px] leading-7 text-[#111827]">{COMPANY_ACCEPTANCE_TEXT}</p>
-        <CompanyAcceptance
-          printedName={agreement.representativeName}
-          title={agreement.representativeTitle}
-          date={representativeDate}
-          signatureDataUrl={agreement.representativeSignatureDataUrl}
-        />
-      </AgreementSection>
+        <AgreementSection number={21} title="UNIFIED TAX GROUP ACCEPTANCE" className="mt-8">
+          <p className="mb-5 text-[15px] leading-7 text-[#111827]">{COMPANY_ACCEPTANCE_TEXT}</p>
+          <CompanyAcceptance
+            printedName={agreement.representativeName}
+            title={agreement.representativeTitle}
+            date={representativeDate}
+            signatureDataUrl={agreement.representativeSignatureDataUrl}
+          />
+        </AgreementSection>
+      </div>
 
       <div className="mt-8 border-t border-slate-200 pt-6">
         {submitError ? (

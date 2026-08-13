@@ -145,29 +145,37 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
           </View>
         ))}
 
-        <PdfSection number={20} title="CLIENT ACCEPTANCE">
-          <Text style={pdfStyles.paragraph}>{CLIENT_ACCEPTANCE_TEXT}</Text>
-          <Text style={pdfStyles.paragraph}>[X] I have read and agree to the terms of this agreement.</Text>
-          <PdfSignature label="Client Signature" dataUrl={data.clientSignatureDataUrl} />
-          <View style={pdfStyles.row}>
-            <PdfField label="Printed Name" value={data.clientPrintedName} />
-            <PdfField label="Title (if signing for a business)" value={data.clientTitle} />
-            <PdfField label="Date" value={data.clientSignedDate} />
+        <View style={{ flexDirection: "row", gap: 18, marginTop: 8 }}>
+          <View style={{ flex: 1 }}>
+            <PdfSection number={20} title="CLIENT ACCEPTANCE">
+              <Text style={pdfStyles.paragraph}>{CLIENT_ACCEPTANCE_TEXT}</Text>
+              <PdfSignature label="CLIENT SIGNATURE" dataUrl={data.clientSignatureDataUrl} />
+              <View style={{ marginBottom: 8 }}>
+                <PdfField label="PRINTED NAME" value={data.clientPrintedName} />
+              </View>
+              <View style={{ marginBottom: 8 }}>
+                <PdfField label="TITLE (IF SIGNING FOR A BUSINESS)" value={data.clientTitle} />
+              </View>
+              <PdfField label="DATE" value={data.clientSignedDate} />
+            </PdfSection>
           </View>
-        </PdfSection>
-
-        <PdfSection number={21} title="UNIFIED TAX GROUP ACCEPTANCE">
-          <Text style={pdfStyles.paragraph}>{COMPANY_ACCEPTANCE_TEXT}</Text>
-          <PdfSignature
-            label="Authorized Representative Signature"
-            dataUrl={data.representativeSignatureDataUrl}
-          />
-          <View style={pdfStyles.row}>
-            <PdfField label="Printed Name" value={data.representativeName} />
-            <PdfField label="Title" value={data.representativeTitle} />
-            <PdfField label="Date" value={data.representativeDate} />
+          <View style={{ flex: 1 }}>
+            <PdfSection number={21} title="UNIFIED TAX GROUP ACCEPTANCE">
+              <Text style={pdfStyles.paragraph}>{COMPANY_ACCEPTANCE_TEXT}</Text>
+              <PdfSignature
+                label="AUTHORIZED REPRESENTATIVE SIGNATURE"
+                dataUrl={data.representativeSignatureDataUrl}
+              />
+              <View style={{ marginBottom: 8 }}>
+                <PdfField label="PRINTED NAME" value={data.representativeName} />
+              </View>
+              <View style={{ marginBottom: 8 }}>
+                <PdfField label="TITLE" value={data.representativeTitle} />
+              </View>
+              <PdfField label="DATE" value={data.representativeDate} />
+            </PdfSection>
           </View>
-        </PdfSection>
+        </View>
 
         <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb", paddingTop: 8 }}>
           <Text style={{ fontFamily: "Times-Bold", marginBottom: 4 }}>Electronic Signing Record</Text>

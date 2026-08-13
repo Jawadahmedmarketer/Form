@@ -14,8 +14,8 @@ export function CompanyAcceptance({
   return (
     <div className="space-y-5">
       <div>
-        <p className="mb-1.5 text-sm font-medium text-[#111827]">
-          Authorized Representative Signature
+        <p className="mb-1.5 text-[11px] font-semibold tracking-[0.12em] text-[#64748b]">
+          AUTHORIZED REPRESENTATIVE SIGNATURE
         </p>
         <div className="flex h-40 items-center justify-center rounded-md border border-slate-300 bg-white px-4">
           {signatureDataUrl ? (
@@ -32,17 +32,15 @@ export function CompanyAcceptance({
           )}
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <FormField label="Printed Name">
-          <TextInput value={printedName} readOnly disabled />
-        </FormField>
-        <FormField label="Title">
-          <TextInput value={title} readOnly disabled />
-        </FormField>
-        <FormField label="Date">
-          <TextInput type="date" value={date} readOnly disabled />
-        </FormField>
-      </div>
+      <FormField label="PRINTED NAME">
+        <TextInput value={printedName} readOnly disabled />
+      </FormField>
+      <FormField label="TITLE">
+        <TextInput value={title} readOnly disabled />
+      </FormField>
+      <FormField label="DATE">
+        <TextInput type="date" value={date} readOnly disabled />
+      </FormField>
     </div>
   );
 }

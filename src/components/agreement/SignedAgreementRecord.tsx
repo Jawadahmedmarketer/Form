@@ -18,33 +18,51 @@ function display(value?: string | null) {
   return value?.trim() || "—";
 }
 
-function SignatureBlock({
+function LinedField({
   label,
+  value,
+  signatureUrl,
+}: {
+  label: string;
+  value?: string;
+  signatureUrl?: string | null;
+}) {
+  return (
+    <div className="border-b border-slate-300 pb-2">
+      <div className="flex min-h-12 items-end">
+        {signatureUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={signatureUrl} alt={label} className="max-h-12 max-w-full object-contain object-left" />
+        ) : (
+          <p className="text-[15px] text-[#111827]">{value || " "}</p>
+        )}
+      </div>
+      <p className="mt-2 text-[10px] font-semibold tracking-[0.14em] text-[#64748b]">{label}</p>
+    </div>
+  );
+}
+
+function SignatureBlock({
+  signatureLabel,
   dataUrl,
   printedName,
   title,
+  titleLabel,
   date,
 }: {
-  label: string;
+  signatureLabel: string;
   dataUrl: string | null;
   printedName: string;
   title: string;
+  titleLabel: string;
   date: string;
 }) {
   return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-[#111827]">{label}</p>
-      <div className="flex h-28 items-center justify-center rounded-md border border-slate-200 bg-white px-3">
-        {dataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={dataUrl} alt={label} className="max-h-24 max-w-full object-contain" />
-        ) : (
-          <p className="text-sm text-[#64748b]">Signature on file</p>
-        )}
-      </div>
-      <ReadOnlyField label="Printed Name" value={display(printedName)} />
-      <ReadOnlyField label="Title" value={display(title)} />
-      <ReadOnlyField label="Date" value={display(date)} />
+    <div className="space-y-6">
+      <LinedField label={signatureLabel} signatureUrl={dataUrl} />
+      <LinedField label="PRINTED NAME" value={display(printedName)} />
+      <LinedField label={titleLabel} value={display(title)} />
+      <LinedField label="DATE" value={display(date)} />
     </div>
   );
 }
@@ -136,7 +154,7 @@ export function SignedAgreementRecord({
           <ReadOnlyField label="Other Service" value={display(row.other_service)} />
           <ReadOnlyField label="Service Description / Notes" value={display(row.service_description)} />
           <ReadOnlyField label="Service Start Date" value={display(formatLongDate(row.service_start_date))} />
-          <ReadOnlyField label="Service End Date" value={display(row.service_end_date)} />
+          <ReadOnlyField label="Service End Date" value={display(formatLongDate(row.service_end_date) || row.service_end_date)} />
         </div>
       </AgreementSection>
 
@@ -156,28 +174,31 @@ export function SignedAgreementRecord({
         </AgreementSection>
       ))}
 
-      <AgreementSection number={20} title="CLIENT ACCEPTANCE">
-        <p className="mb-5 text-[15px] leading-7 text-[#111827]">{CLIENT_ACCEPTANCE_TEXT}</p>
-        <p className="mb-5 text-sm text-[#111827]">[x] I have read and agree to the terms of this agreement.</p>
-        <SignatureBlock
-          label="Client Signature"
-          dataUrl={clientSignatureDataUrl}
-          printedName={row.client_printed_name || ""}
-          title={row.client_title || ""}
-          date={formatLongDate(row.client_signed_date)}
-        />
-      </AgreementSection>
+      <div className="grid gap-10 lg:grid-cols-2">
+        <AgreementSection number={20} title="CLIENT ACCEPTANCE">
+          <p className="mb-6 text-[15px] leading-7 text-[#111827]">{CLIENT_ACCEPTANCE_TEXT}</p>
+          <SignatureBlock
+            signatureLabel="CLIENT SIGNATURE"
+            dataUrl={clientSignatureDataUrl}
+            printedName={row.client_printed_name || ""}
+            title={row.client_title || ""}
+            titleLabel="TITLE (IF SIGNING FOR A BUSINESS)"
+            date={formatLongDate(row.client_signed_date)}
+          />
+        </AgreementSection>
 
-      <AgreementSection number={21} title="UNIFIED TAX GROUP ACCEPTANCE">
-        <p className="mb-5 text-[15px] leading-7 text-[#111827]">{COMPANY_ACCEPTANCE_TEXT}</p>
-        <SignatureBlock
-          label="Authorized Representative Signature"
-          dataUrl={representativeSignatureDataUrl}
-          printedName={row.representative_name || ""}
-          title={row.representative_title || ""}
-          date={formatLongDate(row.representative_date)}
-        />
-      </AgreementSection>
+        <AgreementSection number={21} title="UNIFIED TAX GROUP ACCEPTANCE">
+          <p className="mb-6 text-[15px] leading-7 text-[#111827]">{COMPANY_ACCEPTANCE_TEXT}</p>
+          <SignatureBlock
+            signatureLabel="AUTHORIZED REPRESENTATIVE SIGNATURE"
+            dataUrl={representativeSignatureDataUrl}
+            printedName={row.representative_name || ""}
+            title={row.representative_title || ""}
+            titleLabel="TITLE"
+            date={formatLongDate(row.representative_date)}
+          />
+        </AgreementSection>
+      </div>
 
       <p className="mt-10 border-t border-slate-200 pt-4 text-xs text-[#64748b]">
         Electronically signed {formatLongDate(row.signed_at)} · IP {maskIp(row.signer_ip)}

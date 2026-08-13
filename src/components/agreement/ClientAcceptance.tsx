@@ -54,32 +54,30 @@ export function ClientAcceptance({
       ) : null}
 
       <div>
-        <p className="mb-1.5 text-sm font-medium text-[#111827]">
-          Client Signature <span className="text-red-600">*</span>
+        <p className="mb-1.5 text-[11px] font-semibold tracking-[0.12em] text-[#64748b]">
+          CLIENT SIGNATURE <span className="text-red-600">*</span>
         </p>
         <SignaturePad onChange={onSignature} error={errors?.clientSignature} disabled={disabled} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <FormField label="Printed Name" required error={errors?.clientPrintedName}>
-          <TextInput
-            value={printedName}
-            disabled={disabled}
-            onChange={(event) => onPrintedName(event.target.value)}
-          />
-        </FormField>
-        <FormField label="Title (if signing for a business)">
-          <TextInput value={title} disabled={disabled} onChange={(event) => onTitle(event.target.value)} />
-        </FormField>
-        <FormField label="Date" required error={errors?.clientSignedDate}>
-          <TextInput
-            type="date"
-            value={date}
-            disabled={disabled}
-            onChange={(event) => onDate(event.target.value)}
-          />
-        </FormField>
-      </div>
+      <FormField label="PRINTED NAME" required error={errors?.clientPrintedName}>
+        <TextInput
+          value={printedName}
+          disabled={disabled}
+          onChange={(event) => onPrintedName(event.target.value)}
+        />
+      </FormField>
+      <FormField label="TITLE (IF SIGNING FOR A BUSINESS)">
+        <TextInput value={title} disabled={disabled} onChange={(event) => onTitle(event.target.value)} />
+      </FormField>
+      <FormField label="DATE" required error={errors?.clientSignedDate}>
+        <TextInput
+          type="date"
+          value={date}
+          disabled={disabled}
+          onChange={(event) => onDate(event.target.value)}
+        />
+      </FormField>
     </div>
   );
 }

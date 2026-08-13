@@ -32,7 +32,7 @@ export function toPublicAgreement(
     otherService: row.other_service ?? "",
     serviceDescription: row.service_description ?? "",
     serviceStartDate: row.service_start_date ?? "",
-    serviceEndDate: row.service_end_date ?? "Ongoing — no fixed end date",
+    serviceEndDate: row.service_end_date ?? "",
     setupFee: row.setup_fee ?? "",
     monthlyFee: row.monthly_fee ?? "",
     paymentSchedule: row.payment_schedule ?? "",
@@ -122,7 +122,7 @@ export async function createAgreement(input: CreateAgreementInput) {
       other_service: emptyToNull(input.otherService),
       service_description: emptyToNull(input.serviceDescription),
       service_start_date: emptyToNull(input.serviceStartDate),
-      service_end_date: emptyToNull(input.serviceEndDate) || "Ongoing — no fixed end date",
+      service_end_date: emptyToNull(input.serviceEndDate),
       setup_fee: emptyToNull(input.setupFee),
       monthly_fee: emptyToNull(input.monthlyFee),
       payment_schedule: emptyToNull(input.paymentSchedule),
@@ -144,6 +144,41 @@ export async function createAgreement(input: CreateAgreementInput) {
 
   logInfo("agreement.created", { agreementId: data.id, status: data.status });
   return data as AgreementRow;
+}
+
+export type AdminAgreementSummary = {
+  token: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: AgreementRow["status"];
+  createdAt: string;
+  url: string;
+};
+
+export async function listAgreements(limit = 200): Promise<AdminAgreementSummary[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("agreements")
+    .select("public_token, first_name, last_name, email, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    logError("agreement.list_failed", { message: error.message });
+    throw new Error("Unable to load agreements.");
+  }
+
+  const appUrl = getAppUrl();
+  return (data ?? []).map((row) => ({
+    token: String(row.public_token),
+    firstName: (row.first_name as string | null) ?? "",
+    lastName: (row.last_name as string | null) ?? "",
+    email: (row.email as string | null) ?? "",
+    status: row.status as AgreementRow["status"],
+    createdAt: String(row.created_at),
+    url: `${appUrl}/agreement/${row.public_token}`,
+  }));
 }
 
 export async function claimAgreementForSigning(id: string) {
