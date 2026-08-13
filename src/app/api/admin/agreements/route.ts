@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAgreement, getAppUrl, listAgreements, updateGhlSync } from "@/lib/agreement";
 import { requireAdminMutation, requireAdminRead } from "@/lib/admin-auth";
-import { syncAgreementLinkToGhl } from "@/lib/ghl";
-import { logError } from "@/lib/logger";
+import { syncAgreementLinkToGhl, uploadSignedPdfToGhl } from "@/lib/ghl";
+import { logError, logWarn } from "@/lib/logger";
+import { generateSigningCoverPdf } from "@/lib/pdf";
 import { createAgreementSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -51,12 +52,37 @@ export async function POST(request: NextRequest) {
 
     try {
       const ghl = await syncAgreementLinkToGhl(row);
+      let destination = null as string | null;
+      let note = ghl.note;
+      let status = ghl.status;
+
+      if (ghl.contactId && !ghl.skipped) {
+        try {
+          const coverPdf = await generateSigningCoverPdf(row.public_token);
+          const uploaded = await uploadSignedPdfToGhl(
+            ghl.contactId,
+            coverPdf,
+            "Click to Sign Agreement.pdf",
+          );
+          if (!uploaded.skipped) {
+            destination = "custom_field";
+            note = "Cover PDF (sign link) uploaded to custom field.";
+            status = "synced";
+          }
+        } catch (error) {
+          logWarn("admin.cover_pdf_ghl_skipped", {
+            message: error instanceof Error ? error.message : "Cover PDF upload skipped",
+          });
+        }
+      }
+
       await updateGhlSync(row.id, {
         ghl_contact_id: ghl.contactId,
-        ghl_sync_status: ghl.status,
-        ghl_sync_note: ghl.note,
-        ghl_synced_at: ghl.status === "synced" ? new Date().toISOString() : null,
-        ghl_sync_error: ghl.status === "failed" ? ghl.note || ghl.error || "HighLevel link sync failed" : null,
+        ghl_sync_status: status,
+        ghl_document_destination: destination,
+        ghl_sync_note: note,
+        ghl_synced_at: status === "synced" ? new Date().toISOString() : null,
+        ghl_sync_error: status === "failed" ? note || ghl.error || "HighLevel link sync failed" : null,
       });
     } catch (error) {
       await updateGhlSync(row.id, {
