@@ -32,4 +32,6 @@ export function getGhlFieldMapping(): GhlFieldMapping {
 }
 
 export const GHL_AGREEMENT_TYPE_VALUE = "Service Agreement";
+export const GHL_AGREEMENT_STATUS_DRAFT = "Draft";
+export const GHL_AGREEMENT_STATUS_SENT = "Sent";
 export const GHL_AGREEMENT_STATUS_SIGNED = "Signed";

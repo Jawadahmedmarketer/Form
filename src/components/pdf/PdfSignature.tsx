@@ -33,9 +33,11 @@ const styles = StyleSheet.create({
 export function PdfSignature({
   label,
   dataUrl,
+  emptyLabel = "Signature on file",
 }: {
   label: string;
   dataUrl?: string | null;
+  emptyLabel?: string;
 }) {
   return (
     <View style={styles.wrap}>
@@ -44,7 +46,7 @@ export function PdfSignature({
         {dataUrl ? (
           <Image src={dataUrl} style={styles.image} />
         ) : (
-          <Text style={styles.empty}>Signature on file</Text>
+          <Text style={styles.empty}>{emptyLabel}</Text>
         )}
       </View>
     </View>

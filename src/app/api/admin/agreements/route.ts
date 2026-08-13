@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAgreement, getAppUrl, listAgreements } from "@/lib/agreement";
+import { createAgreement, getAppUrl, listAgreements, updateGhlSync } from "@/lib/agreement";
 import { requireAdminMutation, requireAdminRead } from "@/lib/admin-auth";
+import { syncDraftAgreementToGhl } from "@/lib/ghl";
 import { logError } from "@/lib/logger";
+import { generateDraftAgreementPdf } from "@/lib/pdf";
 import { createAgreementSchema } from "@/lib/validation";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   const denied = await requireAdminRead(request);
@@ -44,6 +49,27 @@ export async function POST(request: NextRequest) {
   try {
     const row = await createAgreement(parsed.data);
     const url = `${getAppUrl()}/agreement/${row.public_token}`;
+
+    try {
+      const pdf = await generateDraftAgreementPdf(row);
+      const ghl = await syncDraftAgreementToGhl(row, pdf);
+      await updateGhlSync(row.id, {
+        ghl_contact_id: ghl.contactId,
+        ghl_draft_document_id: ghl.documentId,
+        ghl_sync_status: ghl.ok ? (ghl.skipped ? "skipped" : "synced") : "failed",
+        ghl_synced_at: ghl.ok && !ghl.skipped ? new Date().toISOString() : null,
+        ghl_sync_error: ghl.ok ? null : ghl.error || "HighLevel draft sync failed",
+      });
+    } catch (error) {
+      await updateGhlSync(row.id, {
+        ghl_sync_status: "failed",
+        ghl_sync_error: error instanceof Error ? error.message : "HighLevel draft sync failed",
+      });
+      logError("admin.agreement_draft_ghl_failed", {
+        message: error instanceof Error ? error.message : "unknown",
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       token: row.public_token,

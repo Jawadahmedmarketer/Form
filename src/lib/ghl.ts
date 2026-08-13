@@ -1,4 +1,6 @@
 import {
+  GHL_AGREEMENT_STATUS_DRAFT,
+  GHL_AGREEMENT_STATUS_SENT,
   GHL_AGREEMENT_STATUS_SIGNED,
   GHL_AGREEMENT_TYPE_VALUE,
   getGhlFieldMapping,
@@ -66,7 +68,15 @@ function extractContactId(payload: unknown): string | null {
   return data.contact?.id || data.id || data.contactId || null;
 }
 
-function customFieldsFor(row: AgreementRow) {
+export type GhlSyncPhase = "draft" | "signed";
+
+function agreementStatusFor(row: AgreementRow, phase: GhlSyncPhase) {
+  if (phase === "signed" || row.status === "signed") return GHL_AGREEMENT_STATUS_SIGNED;
+  if (row.status === "draft") return GHL_AGREEMENT_STATUS_DRAFT;
+  return GHL_AGREEMENT_STATUS_SENT;
+}
+
+function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
   const mapping = getGhlFieldMapping();
   const fields: { id: string; field_value: string }[] = [];
   const selected = formatSelectedServices(
@@ -74,8 +84,8 @@ function customFieldsFor(row: AgreementRow) {
   ).join(", ");
 
   const pairs: [string | undefined, string][] = [
-    [mapping.agreementStatus, GHL_AGREEMENT_STATUS_SIGNED],
-    [mapping.agreementSignedDate, row.signed_at || row.client_signed_date || ""],
+    [mapping.agreementStatus, agreementStatusFor(row, phase)],
+    [mapping.agreementSignedDate, phase === "signed" ? row.signed_at || row.client_signed_date || "" : ""],
     [mapping.agreementType, GHL_AGREEMENT_TYPE_VALUE],
     [mapping.selectedServices, selected],
     [mapping.setupFee, row.setup_fee || ""],
@@ -91,14 +101,19 @@ function customFieldsFor(row: AgreementRow) {
   return fields;
 }
 
-export async function upsertGhlContact(row: AgreementRow) {
+export async function upsertGhlContact(row: AgreementRow, phase: GhlSyncPhase = "signed") {
   const { token, locationId } = getGhlConfig();
   if (!token || !locationId) {
     logWarn("ghl.skipped_missing_config");
     return { skipped: true as const, contactId: row.ghl_contact_id };
   }
 
-  logInfo("ghl.contact_sync_started", { agreementId: row.id });
+  if (!row.email && !row.phone && !row.ghl_contact_id) {
+    logWarn("ghl.skipped_missing_identity", { agreementId: row.id });
+    return { skipped: true as const, contactId: null };
+  }
+
+  logInfo("ghl.contact_sync_started", { agreementId: row.id, phase });
 
   const body: Record<string, unknown> = {
     locationId,
@@ -107,7 +122,7 @@ export async function upsertGhlContact(row: AgreementRow) {
     email: row.email || undefined,
     phone: row.phone || undefined,
     companyName: row.business_name || undefined,
-    customFields: customFieldsFor(row),
+    customFields: customFieldsFor(row, phase),
   };
 
   if (row.ghl_contact_id) {
@@ -136,27 +151,43 @@ export async function upsertGhlContact(row: AgreementRow) {
   return { skipped: false as const, contactId };
 }
 
+function extractDocumentId(payload: unknown, fallback?: string | null) {
+  if (payload && typeof payload === "object") {
+    const data = payload as Record<string, unknown>;
+    const nested = data.file && typeof data.file === "object" ? (data.file as Record<string, unknown>) : null;
+    const id =
+      data.id ||
+      data.fileId ||
+      data.documentId ||
+      data.mediaId ||
+      nested?.id ||
+      nested?.fileId;
+    if (typeof id === "string" && id) return id;
+  }
+  return fallback || null;
+}
+
+function pdfBlob(pdf: Buffer, filename: string) {
+  return new Blob([new Uint8Array(pdf)], { type: "application/pdf" });
+}
+
 export async function uploadSignedPdfToGhl(contactId: string, pdf: Buffer, filename: string) {
   const { token, locationId } = getGhlConfig();
   const fileFieldId = getGhlFieldMapping().signedAgreementFile;
 
   if (!token || !locationId) {
-    return { skipped: true as const };
+    return { skipped: true as const, documentId: null as string | null };
   }
   if (!fileFieldId) {
     logWarn("ghl.pdf_upload_skipped_missing_field", { ghlContactId: contactId });
-    return { skipped: true as const };
+    return { skipped: true as const, documentId: null as string | null };
   }
 
   logInfo("ghl.pdf_upload_started", { ghlContactId: contactId });
 
   const fileId = crypto.randomUUID();
   const form = new FormData();
-  form.append(
-    `${fileFieldId}_${fileId}`,
-    new Blob([new Uint8Array(pdf)], { type: "application/pdf" }),
-    filename,
-  );
+  form.append(`${fileFieldId}_${fileId}`, pdfBlob(pdf, filename), filename);
 
   const response = await fetch(
     `${GHL_API_BASE}/forms/upload-custom-files?contactId=${encodeURIComponent(contactId)}&locationId=${encodeURIComponent(locationId)}`,
@@ -167,13 +198,78 @@ export async function uploadSignedPdfToGhl(contactId: string, pdf: Buffer, filen
     },
   );
 
+  const text = await response.text();
+  let json: unknown = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null;
+  }
+
   if (!response.ok) {
-    const text = await response.text();
     throw new Error(text.slice(0, 300) || `HighLevel file upload failed (${response.status})`);
   }
 
   logInfo("ghl.pdf_uploaded", { ghlContactId: contactId });
-  return { skipped: false as const };
+  return { skipped: false as const, documentId: extractDocumentId(json, fileId) };
+}
+
+export async function uploadGhlContactDocument(
+  contactId: string,
+  pdf: Buffer,
+  filename: string,
+  options?: { allowCustomFieldFallback?: boolean },
+) {
+  const { token, locationId } = getGhlConfig();
+  if (!token || !locationId) {
+    return { skipped: true as const, documentId: null as string | null };
+  }
+
+  const blob = pdfBlob(pdf, filename);
+
+  try {
+    const form = new FormData();
+    form.append("file", blob, filename);
+    form.append("name", filename);
+    form.append("locationId", locationId);
+    const json = await ghlFetch(`/contacts/${contactId}/documents`, token, {
+      method: "POST",
+      body: form,
+    });
+    const documentId = extractDocumentId(json);
+    logInfo("ghl.contact_document_uploaded", { ghlContactId: contactId, filename });
+    return { skipped: false as const, documentId };
+  } catch (error) {
+    logWarn("ghl.contact_documents_unavailable", {
+      message: error instanceof Error ? error.message : "documents endpoint unavailable",
+    });
+  }
+
+  try {
+    const form = new FormData();
+    form.append("file", blob, filename);
+    form.append("name", filename);
+    const json = await ghlFetch("/medias/upload-file", token, {
+      method: "POST",
+      body: form,
+    });
+    const documentId = extractDocumentId(json);
+    logInfo("ghl.media_uploaded", { ghlContactId: contactId, filename });
+    if (documentId) {
+      return { skipped: false as const, documentId };
+    }
+  } catch (error) {
+    logWarn("ghl.media_upload_unavailable", {
+      message: error instanceof Error ? error.message : "media upload unavailable",
+    });
+  }
+
+  if (options?.allowCustomFieldFallback === false) {
+    return { skipped: true as const, documentId: null as string | null };
+  }
+
+  const fieldUpload = await uploadSignedPdfToGhl(contactId, pdf, filename);
+  return fieldUpload;
 }
 
 export async function triggerGhlWebhook(row: AgreementRow, contactId: string | null) {
@@ -215,14 +311,58 @@ export async function triggerGhlWebhook(row: AgreementRow, contactId: string | n
   return { skipped: false as const };
 }
 
-export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
+export async function syncDraftAgreementToGhl(row: AgreementRow, pdf: Buffer) {
   try {
-    const contactResult = await upsertGhlContact(row);
+    const contactResult = await upsertGhlContact(row, "draft");
     const contactId = contactResult.contactId || null;
-    let webhookStatus = "skipped";
+    let documentId: string | null = null;
 
     if (contactId && !contactResult.skipped) {
-      await uploadSignedPdfToGhl(contactId, pdf, row.pdf_filename || "signed-agreement.pdf");
+      const uploaded = await uploadGhlContactDocument(
+        contactId,
+        pdf,
+        "Service Agreement — Draft (Unsigned).pdf",
+      );
+      documentId = uploaded.skipped ? null : uploaded.documentId;
+    }
+
+    return {
+      ok: true as const,
+      contactId,
+      documentId,
+      skipped: contactResult.skipped,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "HighLevel draft sync failed";
+    logError("ghl.draft_sync_failed", { agreementId: row.id, message });
+    return {
+      ok: false as const,
+      contactId: row.ghl_contact_id,
+      documentId: null,
+      error: message,
+    };
+  }
+}
+
+export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
+  try {
+    const contactResult = await upsertGhlContact(row, "signed");
+    const contactId = contactResult.contactId || null;
+    let webhookStatus = "skipped";
+    let documentId: string | null = null;
+
+    if (contactId && !contactResult.skipped) {
+      const uploaded = await uploadGhlContactDocument(
+        contactId,
+        pdf,
+        "Service Agreement — Signed.pdf",
+        { allowCustomFieldFallback: false },
+      );
+      documentId = uploaded.skipped ? null : uploaded.documentId;
+      const fieldUpload = await uploadSignedPdfToGhl(contactId, pdf, "Service Agreement — Signed.pdf");
+      if (!documentId && !fieldUpload.skipped) {
+        documentId = fieldUpload.documentId;
+      }
     }
 
     try {
@@ -239,6 +379,7 @@ export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
     return {
       ok: true as const,
       contactId,
+      documentId,
       webhookStatus,
       skipped: contactResult.skipped,
     };
@@ -248,6 +389,7 @@ export async function syncSignedAgreementToGhl(row: AgreementRow, pdf: Buffer) {
     return {
       ok: false as const,
       contactId: row.ghl_contact_id,
+      documentId: null,
       webhookStatus: "failed",
       error: message,
     };

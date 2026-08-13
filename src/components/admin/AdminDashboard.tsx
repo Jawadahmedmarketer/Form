@@ -144,6 +144,12 @@ export function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={item.status} />
+                        {item.ghlDraftDocumentId ? (
+                          <p className="mt-1 text-[11px] text-slate-500">Draft sent to GHL</p>
+                        ) : null}
+                        {item.ghlSignedDocumentId ? (
+                          <p className="mt-1 text-[11px] text-emerald-700">Signed copy synced</p>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3 text-slate-600">
                         {new Date(item.createdAt).toLocaleString()}

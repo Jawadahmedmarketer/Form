@@ -25,6 +25,7 @@ export async function POST(
   const ghl = await syncSignedAgreementToGhl(row, pdf);
   await updateGhlSync(row.id, {
     ghl_contact_id: ghl.contactId,
+    ghl_signed_document_id: ghl.documentId,
     ghl_sync_status: ghl.ok ? (ghl.skipped ? "skipped" : "synced") : "failed",
     ghl_synced_at: ghl.ok && !ghl.skipped ? new Date().toISOString() : null,
     ghl_sync_error: ghl.ok ? null : ghl.error || "HighLevel sync failed",

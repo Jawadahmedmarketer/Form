@@ -82,6 +82,8 @@ export type AgreementRow = {
   ghl_synced_at: string | null;
   ghl_sync_error: string | null;
   ghl_webhook_status: string | null;
+  ghl_draft_document_id: string | null;
+  ghl_signed_document_id: string | null;
   field_locks: FieldLocks | null;
   payment_url: string | null;
   expires_at: string | null;
