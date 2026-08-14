@@ -225,7 +225,6 @@ export function AdminCreateForm({
               </FormField>
               <FormField label="Representative name" error={errors.representativeName?.message}>
                 <TextInput
-                  placeholder="Jawad Ahmed"
                   error={errors.representativeName?.message}
                   {...register("representativeName")}
                 />
