@@ -7,9 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { FormField, TextArea, TextInput } from "@/components/agreement/FormField";
-import { SignaturePad } from "@/components/agreement/SignaturePad";
 import { SERVICE_OPTIONS } from "@/config/services";
 import { adminCreateFormSchema, type AdminCreateFormInput } from "@/lib/validation";
+import { Dancing_Script } from "next/font/google";
+
+const signatureFont = Dancing_Script({ subsets: ["latin"], weight: ["700"] });
 
 function localDate() {
   const date = new Date();
@@ -46,6 +48,23 @@ function defaultValues(): AdminCreateFormInput {
   };
 }
 
+function nameToSignatureDataUrl(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed || typeof document === "undefined") return "";
+  const canvas = document.createElement("canvas");
+  canvas.width = 600;
+  canvas.height = 200;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#111827";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `64px ${signatureFont.style.fontFamily}`;
+  ctx.fillText(trimmed, canvas.width / 2, canvas.height / 2);
+  return canvas.toDataURL("image/png");
+}
+
 export function AdminCreateForm() {
   const [submitError, setSubmitError] = useState("");
   const [createdUrl, setCreatedUrl] = useState("");
@@ -66,6 +85,7 @@ export function AdminCreateForm() {
   } = form;
 
   const selectedServices = watch("selectedServices");
+  const representativeName = watch("representativeName");
 
   function toggleService(id: (typeof SERVICE_OPTIONS)[number]["id"]) {
     const next = selectedServices.includes(id)
@@ -78,11 +98,12 @@ export function AdminCreateForm() {
     setSubmitError("");
     setCreatedUrl("");
     try {
+      const representativeSignature = nameToSignatureDataUrl(values.representativeName);
       const response = await fetch("/api/admin/agreements", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, representativeSignature }),
       });
       const json = (await response.json()) as { error?: string; url?: string };
       if (!response.ok) throw new Error(json.error || "Unable to create agreement.");
@@ -186,14 +207,17 @@ export function AdminCreateForm() {
               </FormField>
               <div>
                 <p className="mb-1.5 text-sm font-medium text-[#111827]">
-                  Representative signature
+                  Signature preview
                 </p>
-                <SignaturePad
-                  onChange={(value) => setValue("representativeSignature", value, { shouldValidate: true })}
-                  error={errors.representativeSignature?.message}
-                />
+                <div className="flex min-h-[96px] items-center justify-center rounded-md border border-slate-200 bg-[#f8fafc] px-4 py-6">
+                  <span className={`${signatureFont.className} text-4xl text-[#111827]`}>
+                    {representativeName || "Representative name"}
+                  </span>
+                </div>
                 <p className="mt-1 text-xs text-[#475569]">
-                  Leave blank to use the default authorized signature on file.
+                  This signature is generated automatically from the representative
+                  name above — no drawing needed. Leave the name blank to use the
+                  default authorized signature instead.
                 </p>
               </div>
               <FormField label="Tax year(s)" error={errors.taxPeriod?.message}>
