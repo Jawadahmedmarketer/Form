@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,10 +66,22 @@ function nameToSignatureDataUrl(name: string): string {
   return canvas.toDataURL("image/png");
 }
 
-export function AdminCreateForm() {
+export function AdminCreateForm({
+  mode = "create",
+  token,
+  initialValues,
+}: {
+  mode?: "create" | "edit";
+  token?: string;
+  initialValues?: AdminCreateFormInput;
+} = {}) {
+  const router = useRouter();
   const [submitError, setSubmitError] = useState("");
   const [createdUrl, setCreatedUrl] = useState("");
-  const defaults = useMemo(() => defaultValues(), []);
+  const defaults = useMemo(
+    () => (mode === "edit" && initialValues ? initialValues : defaultValues()),
+    [mode, initialValues],
+  );
 
   const form = useForm<AdminCreateFormInput>({
     resolver: zodResolver(adminCreateFormSchema),
@@ -99,17 +112,32 @@ export function AdminCreateForm() {
     setCreatedUrl("");
     try {
       const representativeSignature = nameToSignatureDataUrl(values.representativeName);
+      const payload = { ...values, representativeSignature };
+
+      if (mode === "edit" && token) {
+        const response = await fetch(`/api/admin/agreements/${token}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const json = (await response.json()) as { error?: string };
+        if (!response.ok) throw new Error(json.error || "Unable to save changes.");
+        router.push("/admin");
+        return;
+      }
+
       const response = await fetch("/api/admin/agreements", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, representativeSignature }),
+        body: JSON.stringify(payload),
       });
       const json = (await response.json()) as { error?: string; url?: string };
       if (!response.ok) throw new Error(json.error || "Unable to create agreement.");
       setCreatedUrl(json.url || "");
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Unable to create agreement.");
+      setSubmitError(err instanceof Error ? err.message : "Unable to save.");
     }
   });
 
@@ -132,9 +160,13 @@ export function AdminCreateForm() {
       }
     >
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#111827]">Create agreement</h1>
+        <h1 className="text-2xl font-semibold text-[#111827]">
+          {mode === "edit" ? "Edit agreement" : "Create agreement"}
+        </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Prefill the client record, then copy the unique signing link. Fee fields stay locked for the client.
+          {mode === "edit"
+            ? "Update the client record. The signing link and status stay the same."
+            : "Prefill the client record, then copy the unique signing link. Fee fields stay locked for the client."}
         </p>
       </div>
 
@@ -303,17 +335,19 @@ export function AdminCreateForm() {
               <FormField label="GHL contact ID (optional)" error={errors.ghlContactId?.message}>
                 <TextInput error={errors.ghlContactId?.message} {...register("ghlContactId")} />
               </FormField>
-              <div className="sm:col-span-2">
-                <FormField label="Link status" error={errors.status?.message}>
-                  <select
-                    {...register("status")}
-                    className="w-full rounded-md border border-slate-200 bg-[#f8fafc] px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#2563EB]/20"
-                  >
-                    <option value="sent">Sent — active client link</option>
-                    <option value="draft">Draft</option>
-                  </select>
-                </FormField>
-              </div>
+              {mode === "create" ? (
+                <div className="sm:col-span-2">
+                  <FormField label="Link status" error={errors.status?.message}>
+                    <select
+                      {...register("status")}
+                      className="w-full rounded-md border border-slate-200 bg-[#f8fafc] px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#2563EB]/20"
+                    >
+                      <option value="sent">Sent — active client link</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </FormField>
+                </div>
+              ) : null}
             </div>
           </Section>
 

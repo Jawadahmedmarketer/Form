@@ -5,7 +5,7 @@ import { dataUrlToBuffer } from "@/lib/representative-signature";
 import { getSupabaseAdmin, PDF_BUCKET, SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import type { AgreementRow, PublicAgreement } from "@/lib/supabase/types";
 import { createPublicToken } from "@/lib/tokens";
-import type { CreateAgreementInput } from "@/lib/validation";
+import type { AdminCreateFormInput, CreateAgreementInput } from "@/lib/validation";
 
 function emptyToNull(value?: string | null) {
   const trimmed = value?.trim();
@@ -169,6 +169,71 @@ export async function createAgreement(input: CreateAgreementInput) {
   }
 
   return created;
+}
+
+export async function updateAgreementDraft(id: string, input: AdminCreateFormInput) {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from("agreements")
+    .update({
+      ghl_contact_id: emptyToNull(input.ghlContactId),
+      first_name: emptyToNull(input.firstName),
+      last_name: emptyToNull(input.lastName),
+      business_name: emptyToNull(input.businessName),
+      email: emptyToNull(input.email),
+      phone: emptyToNull(input.phone),
+      business_address: emptyToNull(input.businessAddress),
+      tax_period: emptyToNull(input.taxPeriod),
+      agreement_date: emptyToNull(input.agreementDate),
+      businesses_covered: emptyToNull(input.businessesCovered),
+      selected_services: input.selectedServices,
+      other_service: emptyToNull(input.otherService),
+      service_description: emptyToNull(input.serviceDescription),
+      service_start_date: emptyToNull(input.serviceStartDate),
+      service_end_date: emptyToNull(input.serviceEndDate),
+      setup_fee: emptyToNull(input.setupFee),
+      monthly_fee: emptyToNull(input.monthlyFee),
+      payment_schedule: emptyToNull(input.paymentSchedule),
+      payment_method: emptyToNull(input.paymentMethod),
+      payment_url: emptyToNull(input.paymentUrl),
+      representative_name: emptyToNull(input.representativeName) || REPRESENTATIVE.printedName,
+      representative_title: emptyToNull(input.representativeTitle) || REPRESENTATIVE.title,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    logError("agreement.update_failed", { agreementId: id, message: error?.message });
+    throw new Error("Unable to update agreement.");
+  }
+
+  let updated = data as AgreementRow;
+
+  if (input.representativeSignature) {
+    try {
+      const { buffer } = dataUrlToBuffer(input.representativeSignature);
+      const pathName = await uploadSignature(updated.id, "representative", buffer);
+      const { data: withSignature, error: signatureError } = await supabase
+        .from("agreements")
+        .update({ representative_signature_path: pathName })
+        .eq("id", updated.id)
+        .select("*")
+        .single();
+      if (!signatureError && withSignature) {
+        updated = withSignature as AgreementRow;
+      }
+    } catch (uploadError) {
+      logError("agreement.representative_signature_upload_failed", {
+        agreementId: updated.id,
+        message: uploadError instanceof Error ? uploadError.message : "unknown",
+      });
+    }
+  }
+
+  logInfo("agreement.updated", { agreementId: updated.id });
+  return updated;
 }
 
 export type AdminAgreementSummary = {

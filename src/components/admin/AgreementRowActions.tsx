@@ -28,6 +28,11 @@ export function AgreementRowActions({
       >
         View
       </a>
+      {status !== "signed" ? (
+        <a href={`/admin/${token}/edit`} className={actionClass}>
+          Edit
+        </a>
+      ) : null}
       {showCopy ? (
         <CopyLinkButton value={url} label="Copy link" className={actionClass} />
       ) : null}
