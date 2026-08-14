@@ -26,7 +26,10 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/api/admin/")) {
     if (sessionOk) return NextResponse.next();
-    if (pathname.includes("/retry-ghl") && hasValidAdminBearer(request)) {
+    if (
+      hasValidAdminBearer(request) &&
+      (pathname.includes("/retry-ghl") || pathname === "/api/admin/agreements")
+    ) {
       return NextResponse.next();
     }
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
