@@ -1,7 +1,7 @@
 import { REPRESENTATIVE } from "@/config/company";
 import { mergeFieldLocks } from "@/lib/field-locks";
 import { logError, logInfo } from "@/lib/logger";
-import { dataUrlToBuffer } from "@/lib/representative-signature";
+import { dataUrlToBuffer, generateSignatureFromName } from "@/lib/representative-signature";
 import { getSupabaseAdmin, PDF_BUCKET, SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import type { AgreementRow, PublicAgreement } from "@/lib/supabase/types";
 import { createPublicToken } from "@/lib/tokens";
@@ -147,9 +147,13 @@ export async function createAgreement(input: CreateAgreementInput) {
 
   let created = data as AgreementRow;
 
-  if (input.representativeSignature) {
+  const hasDrawnSignature = Boolean(input.representativeSignature);
+  const trimmedRepresentativeName = input.representativeName?.trim();
+  if (hasDrawnSignature || trimmedRepresentativeName) {
     try {
-      const { buffer } = dataUrlToBuffer(input.representativeSignature);
+      const buffer = hasDrawnSignature
+        ? dataUrlToBuffer(input.representativeSignature).buffer
+        : generateSignatureFromName(trimmedRepresentativeName as string);
       const pathName = await uploadSignature(created.id, "representative", buffer);
       const { data: updated, error: updateError } = await supabase
         .from("agreements")
@@ -211,9 +215,13 @@ export async function updateAgreementDraft(id: string, input: AdminCreateFormInp
 
   let updated = data as AgreementRow;
 
-  if (input.representativeSignature) {
+  const hasDrawnSignature = Boolean(input.representativeSignature);
+  const trimmedRepresentativeName = input.representativeName?.trim();
+  if (hasDrawnSignature || trimmedRepresentativeName) {
     try {
-      const { buffer } = dataUrlToBuffer(input.representativeSignature);
+      const buffer = hasDrawnSignature
+        ? dataUrlToBuffer(input.representativeSignature).buffer
+        : generateSignatureFromName(trimmedRepresentativeName as string);
       const pathName = await uploadSignature(updated.id, "representative", buffer);
       const { data: withSignature, error: signatureError } = await supabase
         .from("agreements")

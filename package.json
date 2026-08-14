@@ -10,6 +10,7 @@
     "seed": "node --env-file=.env.local scripts/seed.mjs"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.53",
     "@hookform/resolvers": "^5.7.1",
     "@react-pdf/renderer": "^4.6.0",
     "@supabase/supabase-js": "^2.112.3",
