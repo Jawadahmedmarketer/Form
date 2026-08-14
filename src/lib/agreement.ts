@@ -1,6 +1,7 @@
 import { REPRESENTATIVE } from "@/config/company";
 import { mergeFieldLocks } from "@/lib/field-locks";
 import { logError, logInfo } from "@/lib/logger";
+import { dataUrlToBuffer } from "@/lib/representative-signature";
 import { getSupabaseAdmin, PDF_BUCKET, SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import type { AgreementRow, PublicAgreement } from "@/lib/supabase/types";
 import { createPublicToken } from "@/lib/tokens";
@@ -127,8 +128,8 @@ export async function createAgreement(input: CreateAgreementInput) {
       monthly_fee: emptyToNull(input.monthlyFee),
       payment_schedule: emptyToNull(input.paymentSchedule),
       payment_method: emptyToNull(input.paymentMethod),
-      representative_name: REPRESENTATIVE.printedName,
-      representative_title: REPRESENTATIVE.title,
+      representative_name: input.representativeName || REPRESENTATIVE.printedName,
+      representative_title: input.representativeTitle || REPRESENTATIVE.title,
       field_locks: input.fieldLocks ?? {},
       payment_url: emptyToNull(input.paymentUrl),
       expires_at: emptyToNull(input.expiresAt),
@@ -143,7 +144,31 @@ export async function createAgreement(input: CreateAgreementInput) {
   }
 
   logInfo("agreement.created", { agreementId: data.id, status: data.status });
-  return data as AgreementRow;
+
+  let created = data as AgreementRow;
+
+  if (input.representativeSignature) {
+    try {
+      const { buffer } = dataUrlToBuffer(input.representativeSignature);
+      const pathName = await uploadSignature(created.id, "representative", buffer);
+      const { data: updated, error: updateError } = await supabase
+        .from("agreements")
+        .update({ representative_signature_path: pathName })
+        .eq("id", created.id)
+        .select("*")
+        .single();
+      if (!updateError && updated) {
+        created = updated as AgreementRow;
+      }
+    } catch (uploadError) {
+      logError("agreement.representative_signature_upload_failed", {
+        agreementId: created.id,
+        message: uploadError instanceof Error ? uploadError.message : "unknown",
+      });
+    }
+  }
+
+  return created;
 }
 
 export type AdminAgreementSummary = {

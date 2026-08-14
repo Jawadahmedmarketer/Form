@@ -86,6 +86,17 @@ export const createAgreementSchema = z.object({
     .optional()
     .default([]),
   otherService: z.string().trim().max(2000).optional().default(""),
+  representativeName: z.string().trim().max(80).optional().default(""),
+  representativeTitle: z.string().trim().max(80).optional().default(""),
+  representativeSignature: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || value.startsWith("data:image/png;base64,"),
+      "Signature must be a PNG image.",
+    )
+    .optional()
+    .default(""),
   serviceDescription: z.string().trim().max(4000).optional().default(""),
   serviceStartDate: z.string().trim().optional().default(""),
   serviceEndDate: z.string().trim().optional().default(""),
@@ -115,6 +126,15 @@ export const adminCreateFormSchema = z
     businessesCovered: z.string().trim().max(4000),
     selectedServices: z.array(z.enum(serviceIds)).min(1, "Select at least one service."),
     otherService: z.string().trim().max(2000),
+    representativeName: z.string().trim().max(80),
+    representativeTitle: z.string().trim().max(80),
+    representativeSignature: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === "" || value.startsWith("data:image/png;base64,"),
+        "Signature must be a PNG image.",
+      ),
     serviceDescription: z.string().trim().max(4000),
     serviceStartDate: z.string().trim(),
     serviceEndDate: z.string().trim(),

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { FormField, TextArea, TextInput } from "@/components/agreement/FormField";
+import { SignaturePad } from "@/components/agreement/SignaturePad";
 import { SERVICE_OPTIONS } from "@/config/services";
 import { adminCreateFormSchema, type AdminCreateFormInput } from "@/lib/validation";
 
@@ -21,6 +22,9 @@ function defaultValues(): AdminCreateFormInput {
     firstName: "",
     lastName: "",
     businessName: "",
+    representativeName: "",
+    representativeTitle: "",
+    representativeSignature: "",
     email: "",
     phone: "",
     businessAddress: "",
@@ -166,6 +170,32 @@ export function AdminCreateForm() {
               <FormField label="Business name" error={errors.businessName?.message}>
                 <TextInput error={errors.businessName?.message} {...register("businessName")} />
               </FormField>
+              <FormField label="Representative name" error={errors.representativeName?.message}>
+                <TextInput
+                  placeholder="Jawad Ahmed"
+                  error={errors.representativeName?.message}
+                  {...register("representativeName")}
+                />
+              </FormField>
+              <FormField label="Representative title" error={errors.representativeTitle?.message}>
+                <TextInput
+                  placeholder="CEO"
+                  error={errors.representativeTitle?.message}
+                  {...register("representativeTitle")}
+                />
+              </FormField>
+              <div>
+                <p className="mb-1.5 text-sm font-medium text-[#111827]">
+                  Representative signature
+                </p>
+                <SignaturePad
+                  onChange={(value) => setValue("representativeSignature", value, { shouldValidate: true })}
+                  error={errors.representativeSignature?.message}
+                />
+                <p className="mt-1 text-xs text-[#475569]">
+                  Leave blank to use the default authorized signature on file.
+                </p>
+              </div>
               <FormField label="Tax year(s)" error={errors.taxPeriod?.message}>
                 <TextInput error={errors.taxPeriod?.message} {...register("taxPeriod")} />
               </FormField>

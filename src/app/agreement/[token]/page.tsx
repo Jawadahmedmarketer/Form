@@ -3,12 +3,14 @@ import { AgreementForm } from "@/components/agreement/AgreementForm";
 import { DocumentShell } from "@/components/agreement/DocumentShell";
 import { InvalidLink } from "@/components/agreement/InvalidLink";
 import {
+  downloadStorageDataUrl,
   getAgreementAccessState,
   getAgreementByToken,
   markAgreementViewed,
   toPublicAgreement,
 } from "@/lib/agreement";
 import { getAuthorizedSignatureDataUrl } from "@/lib/representative-signature";
+import { SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import { isLikelyToken } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +69,9 @@ export default async function AgreementPage({
   }
 
   const viewed = await markAgreementViewed(row);
-  const representativeSignatureDataUrl = await getAuthorizedSignatureDataUrl();
+  const representativeSignatureDataUrl = viewed.representative_signature_path
+    ? await downloadStorageDataUrl(SIGNATURE_BUCKET, viewed.representative_signature_path, "image/png")
+    : await getAuthorizedSignatureDataUrl();
   const agreement = toPublicAgreement(viewed, representativeSignatureDataUrl);
 
   return (
