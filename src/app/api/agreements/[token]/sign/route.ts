@@ -3,6 +3,7 @@ import { REPRESENTATIVE } from "@/config/company";
 import {
   buildPdfFilename,
   claimAgreementForSigning,
+  downloadStorageDataUrl,
   getAgreementAccessState,
   getAgreementByToken,
   markAgreementSigned,
@@ -18,6 +19,7 @@ import { logError, logInfo } from "@/lib/logger";
 import { sendSignedAgreementEmail, signedRecordUrl } from "@/lib/email";
 import { generateAgreementPdf } from "@/lib/pdf";
 import { rateLimit } from "@/lib/rate-limit";
+import { SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import { dataUrlToBuffer, getAuthorizedSignatureDataUrl } from "@/lib/representative-signature";
 import { isLikelyToken } from "@/lib/tokens";
 import { signAgreementSchema } from "@/lib/validation";
@@ -27,6 +29,34 @@ export const maxDuration = 120;
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
+}
+
+async function resolveRepresentativeSignature(claimed: {
+  id: string;
+  representative_signature_path: string | null;
+}): Promise<{ dataUrl: string | null; path: string | null }> {
+  // Prefer the signature that was already generated for THIS agreement
+  // (from a custom representative name or hand-drawn signature at
+  // creation/edit time). Only fall back to the static company-wide
+  // "authorized" signature if this agreement never had its own.
+  if (claimed.representative_signature_path) {
+    const dataUrl = await downloadStorageDataUrl(
+      SIGNATURE_BUCKET,
+      claimed.representative_signature_path,
+      "image/png",
+    );
+    if (dataUrl) {
+      return { dataUrl, path: claimed.representative_signature_path };
+    }
+  }
+
+  const dataUrl = await getAuthorizedSignatureDataUrl();
+  if (!dataUrl) {
+    return { dataUrl: null, path: null };
+  }
+  const buffer = dataUrlToBuffer(dataUrl).buffer;
+  const path = await uploadSignature(claimed.id, "representative", buffer);
+  return { dataUrl, path };
 }
 
 export async function POST(
@@ -91,17 +121,14 @@ export async function POST(
 
   try {
     const clientSignature = dataUrlToBuffer(values.clientSignature);
-    const representativeDataUrl = await getAuthorizedSignatureDataUrl();
-    const representativeBuffer = representativeDataUrl
-      ? dataUrlToBuffer(representativeDataUrl).buffer
-      : null;
 
-    const [clientSignaturePath, representativeSignaturePath] = await Promise.all([
+    const [clientSignaturePath, representativeSignatureResult] = await Promise.all([
       uploadSignature(claimed.id, "client", clientSignature.buffer),
-      representativeBuffer
-        ? uploadSignature(claimed.id, "representative", representativeBuffer)
-        : Promise.resolve(null),
+      resolveRepresentativeSignature(claimed),
     ]);
+
+    const { dataUrl: representativeDataUrl, path: representativeSignaturePath } =
+      representativeSignatureResult;
 
     const fingerprint = fingerprintAgreementContent({
       agreementId: claimed.id,
@@ -127,7 +154,9 @@ export async function POST(
       clientTitle: values.clientTitle,
       clientSignedDate: values.clientSignedDate,
       clientSignatureSha256: sha256Hex(clientSignature.buffer),
-      representativeSignatureSha256: representativeBuffer ? sha256Hex(representativeBuffer) : null,
+      representativeSignatureSha256: representativeDataUrl
+        ? sha256Hex(dataUrlToBuffer(representativeDataUrl).buffer)
+        : null,
       signedAt: signedAt.toISOString(),
     });
 
