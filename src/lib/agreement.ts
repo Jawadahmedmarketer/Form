@@ -381,6 +381,17 @@ export async function downloadStorageDataUrl(
   return `data:${mimeType};base64,${buffer.toString("base64")}`;
 }
 
+export async function updatePaymentUrl(id: string, paymentUrl: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("agreements")
+    .update({ payment_url: paymentUrl })
+    .eq("id", id);
+  if (error) {
+    logError("agreement.payment_url_update_failed", { agreementId: id, message: error.message });
+  }
+}
+
 export async function updateEmailStatus(
   id: string,
   values: {

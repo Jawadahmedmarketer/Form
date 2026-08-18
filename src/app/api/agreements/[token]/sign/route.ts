@@ -9,9 +9,11 @@ import {
   markAgreementSigned,
   updateEmailStatus,
   updateGhlSync,
+  updatePaymentUrl,
   uploadSignature,
   uploadSignedPdf,
 } from "@/lib/agreement";
+import { createAgreementInvoice } from "@/lib/ghl-invoice";
 import { syncSignedAgreementToGhl } from "@/lib/ghl";
 import { fingerprintAgreementContent, sha256Hex } from "@/lib/hashing";
 import { getClientIp, getUserAgent, maskIp } from "@/lib/ip";
@@ -57,6 +59,27 @@ async function resolveRepresentativeSignature(claimed: {
   const buffer = dataUrlToBuffer(dataUrl).buffer;
   const path = await uploadSignature(claimed.id, "representative", buffer);
   return { dataUrl, path };
+}
+
+function invoiceParamsFor(
+  contactId: string,
+  values: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    setupFee?: string | null;
+    monthlyFee?: string | null;
+  },
+) {
+  return {
+    contactId,
+    contactName: [values.firstName, values.lastName].filter(Boolean).join(" ").trim() || "Client",
+    contactEmail: values.email || "",
+    contactPhone: values.phone || "",
+    setupFee: values.setupFee,
+    monthlyFee: values.monthlyFee,
+  };
 }
 
 export async function POST(
@@ -203,6 +226,14 @@ export async function POST(
     const pdfFilename = buildPdfFilename(values.firstName, values.lastName, signedAt);
     const pdfPath = await uploadSignedPdf(claimed.id, pdf);
 
+    let paymentUrl = claimed.payment_url;
+    if (claimed.ghl_contact_id && !paymentUrl) {
+      const invoice = await createAgreementInvoice(
+        invoiceParamsFor(claimed.ghl_contact_id, values),
+      );
+      if (invoice) paymentUrl = invoice.paymentUrl;
+    }
+
     const signed = await markAgreementSigned(claimed.id, {
       status: "signed",
       first_name: values.firstName,
@@ -223,6 +254,7 @@ export async function POST(
       monthly_fee: values.monthlyFee || null,
       payment_schedule: values.paymentSchedule || null,
       payment_method: values.paymentMethod || null,
+      payment_url: paymentUrl,
       client_printed_name: values.clientPrintedName,
       client_title: values.clientTitle || null,
       client_signed_date: values.clientSignedDate,
@@ -275,6 +307,22 @@ export async function POST(
           ghl_sync_error: ghl.status === "failed" ? ghl.note || ghl.error || "HighLevel sync failed" : null,
           ghl_webhook_status: ghl.webhookStatus,
         });
+
+        if (!signed.payment_url && ghl.contactId) {
+          const invoice = await createAgreementInvoice(
+            invoiceParamsFor(ghl.contactId, {
+              firstName: signed.first_name || values.firstName,
+              lastName: signed.last_name || values.lastName,
+              email: signed.email || values.email,
+              phone: signed.phone || values.phone,
+              setupFee: signed.setup_fee,
+              monthlyFee: signed.monthly_fee,
+            }),
+          );
+          if (invoice) {
+            await updatePaymentUrl(signed.id, invoice.paymentUrl);
+          }
+        }
       } catch (error) {
         logError("agreement.ghl_after_failed", {
           agreementId: signed.id,
