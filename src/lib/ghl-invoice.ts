@@ -17,13 +17,9 @@ interface InvoiceResult {
 type GhlInvoicePayload = {
   _id?: string;
   id?: string;
-  invoiceUrl?: string;
-  url?: string;
   invoice?: {
     _id?: string;
     id?: string;
-    invoiceUrl?: string;
-    url?: string;
   };
 };
 
@@ -38,16 +34,25 @@ function formatDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+function normalizePhoneE164(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const trimmed = String(raw).trim();
+  const digits = trimmed.replace(/[^0-9]/g, "");
+  if (trimmed.startsWith("+")) {
+    return `+${digits}`;
+  }
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+${digits}`;
+  }
+  return digits ? `+${digits}` : "";
+}
+
 function extractInvoiceId(payload: GhlInvoicePayload | null | undefined): string | null {
   if (!payload) return null;
   return payload._id || payload.invoice?._id || payload.id || payload.invoice?.id || null;
-}
-
-function extractPaymentUrl(payload: GhlInvoicePayload | null | undefined): string | null {
-  if (!payload) return null;
-  const url =
-    payload.invoiceUrl || payload.invoice?.invoiceUrl || payload.url || payload.invoice?.url || null;
-  return url?.trim() || null;
 }
 
 export async function createAgreementInvoice(
@@ -87,6 +92,12 @@ export async function createAgreementInvoice(
     return null;
   }
 
+  const phoneNo = normalizePhoneE164(params.contactPhone);
+  if (!phoneNo) {
+    logError("ghl_invoice.invalid_phone", { contactId: params.contactId, raw: params.contactPhone });
+    return null;
+  }
+
   const total = items.reduce((sum, item) => sum + item.amount, 0);
   const issueDate = new Date();
   const dueDate = new Date(issueDate.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -113,7 +124,7 @@ export async function createAgreementInvoice(
           id: params.contactId,
           name: params.contactName,
           email: params.contactEmail,
-          phoneNo: params.contactPhone,
+          phoneNo,
         },
         issueDate: formatDate(issueDate),
         dueDate: formatDate(dueDate),
@@ -159,47 +170,15 @@ export async function createAgreementInvoice(
       },
     );
 
-    let paymentUrl: string | null = null;
     if (!sendRes.ok) {
       const errText = await sendRes.text();
-      logError("ghl_invoice.send_failed", {
-        status: sendRes.status,
-        body: errText,
-        invoiceId,
-      });
-    } else {
-      const sent = (await sendRes.json()) as GhlInvoicePayload;
-      paymentUrl = extractPaymentUrl(sent);
+      logError("ghl_invoice.send_failed", { status: sendRes.status, body: errText, invoiceId });
+      // Not fatal — the payment link works even for a draft/unsent invoice.
     }
 
-    if (!paymentUrl) {
-      const getRes = await fetch(
-        `https://services.leadconnectorhq.com/invoices/${invoiceId}?altId=${encodeURIComponent(locationId)}&altType=location`,
-        {
-          method: "GET",
-          headers,
-          signal: AbortSignal.timeout(25_000),
-        },
-      );
-      if (getRes.ok) {
-        const fetched = (await getRes.json()) as GhlInvoicePayload;
-        paymentUrl = extractPaymentUrl(fetched);
-      } else {
-        const errText = await getRes.text();
-        logError("ghl_invoice.fetch_failed", {
-          status: getRes.status,
-          body: errText,
-          invoiceId,
-        });
-      }
-    }
+    const paymentUrl = `https://link.fastpaydirect.com/invoice/${invoiceId}`;
 
-    if (!paymentUrl) {
-      logError("ghl_invoice.no_payment_url", { invoiceId });
-      return null;
-    }
-
-    logInfo("ghl_invoice.created", { invoiceId, contactId: params.contactId });
+    logInfo("ghl_invoice.created", { invoiceId, contactId: params.contactId, total });
     return { invoiceId, paymentUrl };
   } catch (error) {
     logError("ghl_invoice.unexpected_error", {
