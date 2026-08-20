@@ -13,6 +13,7 @@ import {
   uploadSignature,
   uploadSignedPdf,
 } from "@/lib/agreement";
+import { normalizeSelectedServices } from "@/config/services";
 import { createAgreementInvoice } from "@/lib/ghl-invoice";
 import { getGhlRepresentativeDetails, syncSignedAgreementToGhl } from "@/lib/ghl";
 import { formatLongDate } from "@/lib/dates";
@@ -153,6 +154,7 @@ export async function POST(
   logInfo("agreement.submission_started", { agreementId: claimed.id });
 
   const values = parsed.data;
+  const selectedServices = normalizeSelectedServices(values.selectedServices);
   const signedAt = new Date();
   const userAgent = await getUserAgent();
   const representativeDate = signedAt.toISOString().slice(0, 10);
@@ -179,7 +181,7 @@ export async function POST(
       taxPeriod: values.taxPeriod,
       agreementDate: values.agreementDate,
       businessesCovered: values.businessesCovered,
-      selectedServices: values.selectedServices,
+      selectedServices,
       otherService: values.otherService,
       serviceDescription: values.serviceDescription,
       serviceStartDate: values.serviceStartDate,
@@ -214,7 +216,7 @@ export async function POST(
       taxPeriod: values.taxPeriod,
       agreementDate: values.agreementDate,
       businessesCovered: values.businessesCovered,
-      selectedServices: values.selectedServices,
+      selectedServices,
       otherService: values.otherService,
       serviceDescription: values.serviceDescription,
       serviceStartDate: values.serviceStartDate,
@@ -266,7 +268,7 @@ export async function POST(
       tax_period: values.taxPeriod || null,
       agreement_date: values.agreementDate || null,
       businesses_covered: values.businessesCovered || null,
-      selected_services: values.selectedServices,
+      selected_services: selectedServices,
       other_service: values.otherService || null,
       service_description: values.serviceDescription || null,
       service_start_date: values.serviceStartDate || null,

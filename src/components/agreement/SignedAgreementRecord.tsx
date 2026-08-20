@@ -6,7 +6,7 @@ import {
   LEGAL_SECTIONS,
 } from "@/config/agreement-content";
 import { COMPANY } from "@/config/company";
-import { SERVICE_OPTIONS } from "@/config/services";
+import { SERVICE_OPTIONS, normalizeSelectedServices } from "@/config/services";
 import { AgreementSection } from "@/components/agreement/AgreementSection";
 import { LegalBlocks } from "@/components/agreement/LegalBlocks";
 import { ReadOnlyField } from "@/components/agreement/ReadOnlyField";
@@ -76,7 +76,7 @@ export function SignedAgreementRecord({
   clientSignatureDataUrl: string | null;
   representativeSignatureDataUrl: string | null;
 }) {
-  const selected = Array.isArray(row.selected_services) ? row.selected_services : [];
+  const selected = normalizeSelectedServices(row.selected_services);
   const clientName =
     row.client_printed_name ||
     [row.first_name, row.last_name].filter(Boolean).join(" ");

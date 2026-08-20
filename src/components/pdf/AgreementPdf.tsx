@@ -7,7 +7,7 @@ import {
   COMPANY_ACCEPTANCE_TEXT,
 } from "@/config/agreement-content";
 import { COMPANY } from "@/config/company";
-import { SERVICE_OPTIONS } from "@/config/services";
+import { SERVICE_OPTIONS, normalizeSelectedServices } from "@/config/services";
 import {
   PdfField,
   PdfLegalBlocks,
@@ -100,7 +100,7 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
           </Text>
           <View style={pdfStyles.checkboxRow}>
             {SERVICE_OPTIONS.map((service) => {
-              const checked = data.selectedServices.includes(service.id);
+              const checked = normalizeSelectedServices(data.selectedServices).includes(service.id);
               return (
                 <View key={service.id} style={pdfStyles.checkboxItem}>
                   <View style={pdfStyles.box}>

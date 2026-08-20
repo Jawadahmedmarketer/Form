@@ -1,4 +1,5 @@
 import { REPRESENTATIVE } from "@/config/company";
+import { normalizeSelectedServices } from "@/config/services";
 import { mergeFieldLocks, withServiceDescriptionLock } from "@/lib/field-locks";
 import { logError, logInfo } from "@/lib/logger";
 import { dataUrlToBuffer, generateSignatureFromName } from "@/lib/representative-signature";
@@ -29,7 +30,7 @@ export function toPublicAgreement(
     taxPeriod: row.tax_period ?? "",
     agreementDate: row.agreement_date ?? "",
     businessesCovered: row.businesses_covered ?? "",
-    selectedServices: Array.isArray(row.selected_services) ? row.selected_services : [],
+    selectedServices: normalizeSelectedServices(row.selected_services),
     otherService: row.other_service ?? "",
     serviceDescription: row.service_description ?? "",
     serviceStartDate: row.service_start_date ?? "",
@@ -121,7 +122,7 @@ export async function createAgreement(input: CreateAgreementInput) {
       tax_period: emptyToNull(input.taxPeriod),
       agreement_date: emptyToNull(input.agreementDate),
       businesses_covered: emptyToNull(input.businessesCovered),
-      selected_services: input.selectedServices,
+      selected_services: normalizeSelectedServices(input.selectedServices),
       other_service: emptyToNull(input.otherService),
       service_description: emptyToNull(input.serviceDescription),
       service_start_date: emptyToNull(input.serviceStartDate),
@@ -199,7 +200,7 @@ export async function updateAgreementDraft(
       tax_period: emptyToNull(input.taxPeriod),
       agreement_date: emptyToNull(input.agreementDate),
       businesses_covered: emptyToNull(input.businessesCovered),
-      selected_services: input.selectedServices,
+      selected_services: normalizeSelectedServices(input.selectedServices),
       other_service: emptyToNull(input.otherService),
       service_description: emptyToNull(input.serviceDescription),
       service_start_date: emptyToNull(input.serviceStartDate),

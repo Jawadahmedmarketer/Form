@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AdminCreateForm } from "@/components/admin/AdminCreateForm";
-import { SERVICE_OPTIONS } from "@/config/services";
+import { SERVICE_OPTIONS, normalizeSelectedServices } from "@/config/services";
 import { getAgreementByToken } from "@/lib/agreement";
 import { isLikelyToken } from "@/lib/tokens";
 import type { AdminCreateFormInput } from "@/lib/validation";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 const serviceIds = SERVICE_OPTIONS.map((service) => service.id);
 
 function toFormValues(row: NonNullable<Awaited<ReturnType<typeof getAgreementByToken>>>): AdminCreateFormInput {
-  const selected = (Array.isArray(row.selected_services) ? row.selected_services : []).filter(
+  const selected = normalizeSelectedServices(row.selected_services).filter(
     (id): id is (typeof serviceIds)[number] => serviceIds.includes(id as (typeof serviceIds)[number]),
   );
 

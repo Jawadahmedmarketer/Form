@@ -20,3 +20,40 @@ export function formatSelectedServices(ids: string[] | null | undefined) {
   if (!ids?.length) return [];
   return ids.map((id) => SERVICE_LABELS[id] ?? id);
 }
+
+/** Accept array, comma-separated string, or JSON-encoded array from GHL/n8n/jsonb. */
+export function normalizeSelectedServices(raw: unknown): string[] {
+  if (raw == null || raw === "") return [];
+
+  let items: string[] = [];
+  if (Array.isArray(raw)) {
+    items = raw.flatMap((item) =>
+      typeof item === "string" && (item.includes(",") || item.trim().startsWith("["))
+        ? normalizeSelectedServices(item)
+        : [String(item ?? "")],
+    );
+  } else if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        return normalizeSelectedServices(JSON.parse(trimmed));
+      } catch {
+        // Fall through to comma-separated parsing.
+      }
+    }
+    items = trimmed.split(/[,;\n]+/);
+  } else {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const item of items) {
+    const id = item.trim().replace(/^["']|["']$/g, "");
+    if (!id || !(id in SERVICE_LABELS) || seen.has(id)) continue;
+    seen.add(id);
+    normalized.push(id);
+  }
+  return normalized;
+}

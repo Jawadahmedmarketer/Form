@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SERVICE_OPTIONS } from "@/config/services";
+import { SERVICE_OPTIONS, normalizeSelectedServices } from "@/config/services";
 
 const serviceIds = SERVICE_OPTIONS.map((service) => service.id) as [string, ...string[]];
 
@@ -24,9 +24,10 @@ export const signAgreementSchema = z
     taxPeriod: optionalText,
     agreementDate: z.string().trim().min(1, "Agreement date is required."),
     businessesCovered: z.string().trim().max(4000),
-    selectedServices: z
-      .array(z.enum(serviceIds))
-      .min(1, "Select at least one service."),
+    selectedServices: z.preprocess(
+      (value) => normalizeSelectedServices(value),
+      z.array(z.enum(serviceIds)).min(1, "Select at least one service."),
+    ),
     otherService: optionalText,
     serviceDescription: z.string().trim().max(4000),
     serviceStartDate: optionalText,
@@ -60,7 +61,14 @@ export const signAgreementSchema = z
 
 export type SignAgreementInput = z.infer<typeof signAgreementSchema>;
 
-export const createAgreementSchema = z.object({
+export const createAgreementSchema = z.preprocess((raw) => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const obj = raw as Record<string, unknown>;
+  if (obj.selectedServices == null && obj.selected_services != null) {
+    return { ...obj, selectedServices: obj.selected_services };
+  }
+  return obj;
+}, z.object({
   firstName: z.string().trim().max(80).optional().default(""),
   lastName: z.string().trim().max(80).optional().default(""),
   businessName: z.string().trim().max(160).optional().default(""),
@@ -76,15 +84,7 @@ export const createAgreementSchema = z.object({
   agreementDate: z.string().trim().optional().default(""),
   businessesCovered: z.string().trim().max(4000).optional().default(""),
   selectedServices: z
-    .preprocess((value) => {
-      if (typeof value === "string") {
-        return value
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
-      }
-      return value;
-    }, z.array(z.enum(serviceIds)))
+    .preprocess((value) => normalizeSelectedServices(value), z.array(z.enum(serviceIds)))
     .optional()
     .default([]),
   otherService: z.string().trim().max(2000).optional().default(""),
@@ -113,7 +113,7 @@ export const createAgreementSchema = z.object({
   expiresAt: z.string().trim().optional().default(""),
   fieldLocks: z.record(z.enum(["editable", "prefilled_editable", "locked"])).optional(),
   status: z.enum(["draft", "sent"]).optional().default("sent"),
-});
+}));
 
 export type CreateAgreementInput = z.infer<typeof createAgreementSchema>;
 
@@ -128,7 +128,10 @@ export const adminCreateFormSchema = z
     taxPeriod: z.string().trim().max(200),
     agreementDate: z.string().trim(),
     businessesCovered: z.string().trim().max(4000),
-    selectedServices: z.array(z.enum(serviceIds)).min(1, "Select at least one service."),
+    selectedServices: z.preprocess(
+      (value) => normalizeSelectedServices(value),
+      z.array(z.enum(serviceIds)).min(1, "Select at least one service."),
+    ),
     otherService: z.string().trim().max(2000),
     representativeName: z.string().trim().max(80),
     representativeTitle: z.string().trim().max(80),
