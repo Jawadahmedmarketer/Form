@@ -63,6 +63,8 @@ export type AgreementRow = {
   service_end_date: string | null;
   setup_fee: string | null;
   monthly_fee: string | null;
+  setup_fee_label: string | null;
+  monthly_fee_label: string | null;
   payment_schedule: string | null;
   payment_method: string | null;
   client_printed_name: string | null;
@@ -119,6 +121,8 @@ export type PublicAgreement = {
   serviceEndDate: string;
   setupFee: string;
   monthlyFee: string;
+  setupFeeLabel: string;
+  monthlyFeeLabel: string;
   paymentSchedule: string;
   paymentMethod: string;
   fieldLocks: FieldLocks;

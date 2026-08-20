@@ -41,6 +41,8 @@ function defaultValues(): AdminCreateFormInput {
     serviceEndDate: "",
     setupFee: "",
     monthlyFee: "",
+    setupFeeLabel: "",
+    monthlyFeeLabel: "",
     paymentSchedule: "Setup due on signing; monthly thereafter",
     paymentMethod: "Card or ACH",
     ghlContactId: "",
@@ -312,6 +314,20 @@ export function AdminCreateForm({
 
           <Section title="Fees & Payment">
             <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Setup Fee Item Name" error={errors.setupFeeLabel?.message}>
+                <TextInput
+                  placeholder="Setup Fee"
+                  error={errors.setupFeeLabel?.message}
+                  {...register("setupFeeLabel")}
+                />
+              </FormField>
+              <FormField label="Monthly Fee Item Name" error={errors.monthlyFeeLabel?.message}>
+                <TextInput
+                  placeholder="Monthly Fee (First Payment)"
+                  error={errors.monthlyFeeLabel?.message}
+                  {...register("monthlyFeeLabel")}
+                />
+              </FormField>
               <FormField label="Setup fee" error={errors.setupFee?.message}>
                 <TextInput placeholder="$2,387" error={errors.setupFee?.message} {...register("setupFee")} />
               </FormField>

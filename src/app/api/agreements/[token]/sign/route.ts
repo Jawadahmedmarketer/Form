@@ -73,8 +73,16 @@ function invoiceParamsFor(
     monthlyFee?: string | null;
     setupFeeLabel?: string | null;
     monthlyFeeLabel?: string | null;
+    serviceDescription?: string | null;
   },
 ) {
+  const trimmedDescription = (values.serviceDescription || "").trim();
+  const descriptionLabel = trimmedDescription
+    ? trimmedDescription.length > 120
+      ? `${trimmedDescription.slice(0, 117)}...`
+      : trimmedDescription
+    : undefined;
+
   return {
     contactId,
     contactName: [values.firstName, values.lastName].filter(Boolean).join(" ").trim() || "Client",
@@ -82,7 +90,7 @@ function invoiceParamsFor(
     contactPhone: values.phone || "",
     setupFee: values.setupFee,
     monthlyFee: values.monthlyFee,
-    setupFeeLabel: values.setupFeeLabel || undefined,
+    setupFeeLabel: values.setupFeeLabel || descriptionLabel || undefined,
     monthlyFeeLabel: values.monthlyFeeLabel || undefined,
   };
 }
@@ -263,6 +271,8 @@ export async function POST(
       service_end_date: values.serviceEndDate || null,
       setup_fee: values.setupFee || null,
       monthly_fee: values.monthlyFee || null,
+      setup_fee_label: values.setupFeeLabel || claimed.setup_fee_label || null,
+      monthly_fee_label: values.monthlyFeeLabel || claimed.monthly_fee_label || null,
       payment_schedule: values.paymentSchedule || null,
       payment_method: values.paymentMethod || null,
       payment_url: paymentUrl,
@@ -328,6 +338,7 @@ export async function POST(
               phone: signed.phone || values.phone,
               setupFee: signed.setup_fee,
               monthlyFee: signed.monthly_fee,
+              serviceDescription: signed.service_description || values.serviceDescription,
             }),
           );
           if (invoice) {

@@ -39,6 +39,8 @@ function toFormValues(row: NonNullable<Awaited<ReturnType<typeof getAgreementByT
     serviceEndDate: row.service_end_date || "",
     setupFee: row.setup_fee || "",
     monthlyFee: row.monthly_fee || "",
+    setupFeeLabel: row.setup_fee_label || "",
+    monthlyFeeLabel: row.monthly_fee_label || "",
     paymentSchedule: row.payment_schedule || "",
     paymentMethod: row.payment_method || "",
     ghlContactId: row.ghl_contact_id || "",

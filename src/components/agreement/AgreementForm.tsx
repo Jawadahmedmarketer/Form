@@ -72,6 +72,8 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
       serviceEndDate: agreement.serviceEndDate,
       setupFee: agreement.setupFee,
       monthlyFee: agreement.monthlyFee,
+      setupFeeLabel: agreement.setupFeeLabel,
+      monthlyFeeLabel: agreement.monthlyFeeLabel,
       paymentSchedule: agreement.paymentSchedule,
       paymentMethod: agreement.paymentMethod,
       acceptedTerms: false,
@@ -210,6 +212,8 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
         <FeeFields
           setupFee={watch("setupFee")}
           monthlyFee={watch("monthlyFee")}
+          setupFeeLabel={watch("setupFeeLabel")}
+          monthlyFeeLabel={watch("monthlyFeeLabel")}
           paymentSchedule={watch("paymentSchedule")}
           paymentMethod={watch("paymentMethod")}
           locked={isLocked(agreement.fieldLocks.setupFee)}
