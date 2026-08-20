@@ -1,3 +1,4 @@
+import { formatSelectedServices } from "@/config/services";
 import { logError, logInfo } from "@/lib/logger";
 
 interface CreateInvoiceParams {
@@ -9,6 +10,7 @@ interface CreateInvoiceParams {
   monthlyFee?: string | null;
   setupFeeLabel?: string;
   monthlyFeeLabel?: string;
+  selectedServices?: string | string[] | null;
 }
 
 interface InvoiceResult {
@@ -57,6 +59,22 @@ function extractInvoiceId(payload: GhlInvoicePayload | null | undefined): string
   return payload._id || payload.invoice?._id || payload.id || payload.invoice?.id || null;
 }
 
+function invoiceNameFromSelectedServices(
+  raw: string | string[] | null | undefined,
+): string | undefined {
+  const ids = Array.isArray(raw)
+    ? raw
+    : typeof raw === "string"
+      ? raw
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+  const labels = formatSelectedServices(ids);
+  if (!labels.length) return undefined;
+  return labels.join(" + ");
+}
+
 export async function createAgreementInvoice(
   params: CreateInvoiceParams,
 ): Promise<InvoiceResult | null> {
@@ -84,7 +102,10 @@ export async function createAgreementInvoice(
   const items: Array<{ name: string; qty: number; amount: number; currency: string }> = [];
   if (setupFee > 0) {
     items.push({
-      name: params.setupFeeLabel || "Setup Fee",
+      name:
+        invoiceNameFromSelectedServices(params.selectedServices) ||
+        params.setupFeeLabel ||
+        "Setup Fee",
       qty: 1,
       amount: setupFee,
       currency: "USD",

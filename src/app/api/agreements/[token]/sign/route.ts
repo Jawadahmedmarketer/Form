@@ -74,6 +74,7 @@ function invoiceParamsFor(
     setupFeeLabel?: string | null;
     monthlyFeeLabel?: string | null;
     serviceDescription?: string | null;
+    selectedServices?: string | string[] | null;
   },
 ) {
   const trimmedDescription = (values.serviceDescription || "").trim();
@@ -92,6 +93,7 @@ function invoiceParamsFor(
     monthlyFee: values.monthlyFee,
     setupFeeLabel: values.setupFeeLabel || descriptionLabel || undefined,
     monthlyFeeLabel: values.monthlyFeeLabel || undefined,
+    selectedServices: values.selectedServices,
   };
 }
 
@@ -339,6 +341,7 @@ export async function POST(
               setupFee: signed.setup_fee,
               monthlyFee: signed.monthly_fee,
               serviceDescription: signed.service_description || values.serviceDescription,
+              selectedServices: signed.selected_services || values.selectedServices,
             }),
           );
           if (invoice) {
