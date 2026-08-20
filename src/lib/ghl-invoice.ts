@@ -151,6 +151,8 @@ export async function createAgreementInvoice(
     Version: "2021-07-28",
   };
 
+  const descriptionPart = params.setupFeeLabel?.trim() || "";
+
   try {
     const createRes = await fetch("https://services.leadconnectorhq.com/invoices/", {
       method: "POST",
@@ -177,6 +179,7 @@ export async function createAgreementInvoice(
         amountDue: total,
         liveMode: true,
         automaticTaxesEnabled: false,
+        ...(descriptionPart ? { termsNotes: `<p>${descriptionPart}</p>` } : {}),
       }),
       signal: AbortSignal.timeout(25_000),
     });
