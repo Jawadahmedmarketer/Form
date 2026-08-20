@@ -7,6 +7,8 @@ interface CreateInvoiceParams {
   contactPhone: string;
   setupFee?: string | null;
   monthlyFee?: string | null;
+  setupFeeLabel?: string;
+  monthlyFeeLabel?: string;
 }
 
 interface InvoiceResult {
@@ -81,10 +83,20 @@ export async function createAgreementInvoice(
 
   const items: Array<{ name: string; qty: number; amount: number; currency: string }> = [];
   if (setupFee > 0) {
-    items.push({ name: "Setup Fee", qty: 1, amount: setupFee, currency: "USD" });
+    items.push({
+      name: params.setupFeeLabel || "Setup Fee",
+      qty: 1,
+      amount: setupFee,
+      currency: "USD",
+    });
   }
   if (monthlyFee > 0) {
-    items.push({ name: "Monthly Fee (First Payment)", qty: 1, amount: monthlyFee, currency: "USD" });
+    items.push({
+      name: params.monthlyFeeLabel || "Monthly Fee (First Payment)",
+      qty: 1,
+      amount: monthlyFee,
+      currency: "USD",
+    });
   }
 
   if (items.length === 0) {

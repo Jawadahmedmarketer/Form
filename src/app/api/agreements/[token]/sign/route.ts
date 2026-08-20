@@ -71,6 +71,8 @@ function invoiceParamsFor(
     phone: string;
     setupFee?: string | null;
     monthlyFee?: string | null;
+    setupFeeLabel?: string | null;
+    monthlyFeeLabel?: string | null;
   },
 ) {
   return {
@@ -80,6 +82,8 @@ function invoiceParamsFor(
     contactPhone: values.phone || "",
     setupFee: values.setupFee,
     monthlyFee: values.monthlyFee,
+    setupFeeLabel: values.setupFeeLabel || undefined,
+    monthlyFeeLabel: values.monthlyFeeLabel || undefined,
   };
 }
 

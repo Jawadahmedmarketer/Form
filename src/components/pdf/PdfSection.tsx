@@ -79,9 +79,13 @@ export const pdfStyles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginBottom: 6,
+    alignItems: "flex-start",
   },
   field: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
   },
   label: {
     fontSize: 8,
@@ -95,7 +99,6 @@ export const pdfStyles = StyleSheet.create({
     borderColor: pdfColors.border,
     paddingVertical: 5,
     paddingHorizontal: 6,
-    minHeight: 16,
   },
   checkboxRow: {
     flexDirection: "row",
@@ -156,10 +159,10 @@ export function PdfSection({
 
 export function PdfField({ label, value }: { label: string; value?: string | null }) {
   return (
-    <View style={pdfStyles.field}>
+    <View wrap={false} style={pdfStyles.field}>
       <Text style={pdfStyles.label}>{label}</Text>
       <View style={pdfStyles.valueBox}>
-        <Text>{value || " "}</Text>
+        <Text style={{ width: "100%" }}>{value || " "}</Text>
       </View>
     </View>
   );
@@ -167,10 +170,10 @@ export function PdfField({ label, value }: { label: string; value?: string | nul
 
 export function PdfLineField({ label, value }: { label: string; value?: string | null }) {
   return (
-    <View wrap={false} style={{ marginBottom: 8 }}>
+    <View wrap={false} style={{ marginBottom: 8, width: "100%" }}>
       <Text style={pdfStyles.label}>{label}</Text>
       <View style={pdfStyles.valueBox}>
-        <Text>{value || " "}</Text>
+        <Text style={{ width: "100%" }}>{value || " "}</Text>
       </View>
     </View>
   );

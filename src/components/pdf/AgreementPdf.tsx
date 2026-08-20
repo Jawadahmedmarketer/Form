@@ -90,9 +90,7 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
 
         <PdfSection number={2} title="UNIFIED TAX GROUP INFORMATION">
           {COMPANY_READONLY_FIELDS.map((field) => (
-            <View key={field.label} style={{ marginBottom: 6 }}>
-              <PdfField label={field.label} value={field.value} />
-            </View>
+            <PdfLineField key={field.label} label={field.label} value={field.value} />
           ))}
         </PdfSection>
 
