@@ -75,6 +75,15 @@ function invoiceNameFromSelectedServices(
   return labels.join(" + ");
 }
 
+function buildSetupItemName(servicesPart?: string, descriptionPart?: string): string {
+  const services = servicesPart?.trim() || "";
+  const description = descriptionPart?.trim() || "";
+  if (services && description) return `${services} - ${description}`;
+  if (services) return services;
+  if (description) return description;
+  return "Setup Fee";
+}
+
 export async function createAgreementInvoice(
   params: CreateInvoiceParams,
 ): Promise<InvoiceResult | null> {
@@ -102,10 +111,10 @@ export async function createAgreementInvoice(
   const items: Array<{ name: string; qty: number; amount: number; currency: string }> = [];
   if (setupFee > 0) {
     items.push({
-      name:
-        invoiceNameFromSelectedServices(params.selectedServices) ||
-        params.setupFeeLabel ||
-        "Setup Fee",
+      name: buildSetupItemName(
+        invoiceNameFromSelectedServices(params.selectedServices),
+        params.setupFeeLabel,
+      ),
       qty: 1,
       amount: setupFee,
       currency: "USD",
