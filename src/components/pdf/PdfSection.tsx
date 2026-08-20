@@ -165,6 +165,17 @@ export function PdfField({ label, value }: { label: string; value?: string | nul
   );
 }
 
+export function PdfLineField({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <View wrap={false} style={{ marginBottom: 8 }}>
+      <Text style={pdfStyles.label}>{label}</Text>
+      <View style={pdfStyles.valueBox}>
+        <Text>{value || " "}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function PdfLegalBlocks({
   blocks,
 }: {

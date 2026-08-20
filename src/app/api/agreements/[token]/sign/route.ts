@@ -14,7 +14,8 @@ import {
   uploadSignedPdf,
 } from "@/lib/agreement";
 import { createAgreementInvoice } from "@/lib/ghl-invoice";
-import { syncSignedAgreementToGhl } from "@/lib/ghl";
+import { getGhlRepresentativeDetails, syncSignedAgreementToGhl } from "@/lib/ghl";
+import { formatLongDate } from "@/lib/dates";
 import { fingerprintAgreementContent, sha256Hex } from "@/lib/hashing";
 import { getClientIp, getUserAgent, maskIp } from "@/lib/ip";
 import { logError, logInfo } from "@/lib/logger";
@@ -183,6 +184,12 @@ export async function POST(
       signedAt: signedAt.toISOString(),
     });
 
+    const fromGhl = await getGhlRepresentativeDetails(claimed.ghl_contact_id);
+    const representativeName =
+      fromGhl.name || claimed.representative_name || REPRESENTATIVE.printedName;
+    const representativeTitle =
+      fromGhl.title || claimed.representative_title || REPRESENTATIVE.title;
+
     const pdf = await generateAgreementPdf({
       firstName: values.firstName,
       lastName: values.lastName,
@@ -204,11 +211,11 @@ export async function POST(
       paymentMethod: values.paymentMethod,
       clientPrintedName: values.clientPrintedName,
       clientTitle: values.clientTitle,
-      clientSignedDate: values.clientSignedDate,
+      clientSignedDate: formatLongDate(values.clientSignedDate) || values.clientSignedDate,
       clientSignatureDataUrl: values.clientSignature,
-      representativeName: claimed.representative_name || REPRESENTATIVE.printedName,
-      representativeTitle: claimed.representative_title || REPRESENTATIVE.title,
-      representativeDate,
+      representativeName,
+      representativeTitle,
+      representativeDate: formatLongDate(representativeDate) || representativeDate,
       representativeSignatureDataUrl: representativeDataUrl,
       signedAtLabel: signedAt.toLocaleString("en-US", {
         year: "numeric",
@@ -259,8 +266,8 @@ export async function POST(
       client_title: values.clientTitle || null,
       client_signed_date: values.clientSignedDate,
       client_signature_path: clientSignaturePath,
-      representative_name: claimed.representative_name || REPRESENTATIVE.printedName,
-      representative_title: claimed.representative_title || REPRESENTATIVE.title,
+      representative_name: representativeName,
+      representative_title: representativeTitle,
       representative_date: representativeDate,
       representative_signature_path: representativeSignaturePath,
       pdf_path: pdfPath,

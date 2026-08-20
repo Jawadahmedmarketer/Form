@@ -11,6 +11,9 @@ export type GhlFieldMapping = {
   monthlyFee?: string;
   signedAgreementFile?: string;
   agreementLink?: string;
+  representativeName?: string;
+  representativeTitle?: string;
+  representativeDate?: string;
 };
 
 function envId(name: string) {
@@ -30,6 +33,9 @@ export function getGhlFieldMapping(): GhlFieldMapping {
       envId("GHL_SIGNED_AGREEMENT_CUSTOM_FIELD_ID") ||
       envId("GHL_CF_SIGNED_AGREEMENT_FILE"),
     agreementLink: envId("GHL_AGREEMENT_LINK_FIELD_ID"),
+    representativeName: envId("GHL_CF_REPRESENTATIVE_NAME"),
+    representativeTitle: envId("GHL_CF_REPRESENTATIVE_TITLE"),
+    representativeDate: envId("GHL_CF_REPRESENTATIVE_DATE"),
   };
 }
 

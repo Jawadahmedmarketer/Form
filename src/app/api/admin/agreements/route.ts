@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAgreement, getAppUrl, listAgreements, updateGhlSync } from "@/lib/agreement";
 import { requireAdminMutation, requireAdminRead } from "@/lib/admin-auth";
-import { syncAgreementLinkToGhl, uploadSignedPdfToGhl } from "@/lib/ghl";
+import { getGhlRepresentativeDetails, syncAgreementLinkToGhl, uploadSignedPdfToGhl } from "@/lib/ghl";
 import { logError, logWarn } from "@/lib/logger";
 import { generateSigningCoverPdf } from "@/lib/pdf";
 import { createAgreementSchema } from "@/lib/validation";
@@ -47,7 +47,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const row = await createAgreement(parsed.data);
+    const input = { ...parsed.data };
+    if (input.ghlContactId) {
+      const fromGhl = await getGhlRepresentativeDetails(input.ghlContactId);
+      if (!input.representativeName && fromGhl.name) input.representativeName = fromGhl.name;
+      if (!input.representativeTitle && fromGhl.title) input.representativeTitle = fromGhl.title;
+    }
+
+    const row = await createAgreement(input);
     const url = `${getAppUrl()}/agreement/${row.public_token}`;
 
     try {

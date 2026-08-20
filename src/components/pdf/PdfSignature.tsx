@@ -4,7 +4,7 @@ import { pdfColors } from "@/components/pdf/PdfSection";
 const styles = StyleSheet.create({
   wrap: {
     marginTop: 4,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   label: {
     fontSize: 8,
@@ -15,13 +15,15 @@ const styles = StyleSheet.create({
   box: {
     borderWidth: 1,
     borderColor: "#d1d5db",
-    height: 72,
+    height: 70,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#ffffff",
+    overflow: "hidden",
   },
   image: {
-    height: 64,
+    width: "90%",
+    height: 54,
     objectFit: "contain",
   },
   empty: {
@@ -40,7 +42,7 @@ export function PdfSignature({
   emptyLabel?: string;
 }) {
   return (
-    <View style={styles.wrap}>
+    <View style={styles.wrap} wrap={false}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.box}>
         {dataUrl ? (

@@ -11,6 +11,7 @@ import { SERVICE_OPTIONS } from "@/config/services";
 import {
   PdfField,
   PdfLegalBlocks,
+  PdfLineField,
   PdfSection,
   pdfStyles,
 } from "@/components/pdf/PdfSection";
@@ -145,34 +146,26 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
           </View>
         ))}
 
-        <View style={{ flexDirection: "row", gap: 18, marginTop: 8 }}>
-          <View style={{ flex: 1 }}>
+        <View wrap={false} style={{ flexDirection: "row", gap: 16, marginTop: 10 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <PdfSection number={20} title="CLIENT ACCEPTANCE">
               <Text style={pdfStyles.paragraph}>{CLIENT_ACCEPTANCE_TEXT}</Text>
               <PdfSignature label="CLIENT SIGNATURE" dataUrl={data.clientSignatureDataUrl} />
-              <View style={{ marginBottom: 8 }}>
-                <PdfField label="PRINTED NAME" value={data.clientPrintedName} />
-              </View>
-              <View style={{ marginBottom: 8 }}>
-                <PdfField label="TITLE (IF SIGNING FOR A BUSINESS)" value={data.clientTitle} />
-              </View>
-              <PdfField label="DATE" value={data.clientSignedDate} />
+              <PdfLineField label="PRINTED NAME" value={data.clientPrintedName} />
+              <PdfLineField label="TITLE (IF SIGNING FOR A BUSINESS)" value={data.clientTitle} />
+              <PdfLineField label="DATE" value={data.clientSignedDate} />
             </PdfSection>
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <PdfSection number={21} title="UNIFIED TAX GROUP ACCEPTANCE">
               <Text style={pdfStyles.paragraph}>{COMPANY_ACCEPTANCE_TEXT}</Text>
               <PdfSignature
                 label="AUTHORIZED REPRESENTATIVE SIGNATURE"
                 dataUrl={data.representativeSignatureDataUrl}
               />
-              <View style={{ marginBottom: 8 }}>
-                <PdfField label="PRINTED NAME" value={data.representativeName} />
-              </View>
-              <View style={{ marginBottom: 8 }}>
-                <PdfField label="TITLE" value={data.representativeTitle} />
-              </View>
-              <PdfField label="DATE" value={data.representativeDate} />
+              <PdfLineField label="PRINTED NAME" value={data.representativeName} />
+              <PdfLineField label="TITLE" value={data.representativeTitle} />
+              <PdfLineField label="DATE" value={data.representativeDate} />
             </PdfSection>
           </View>
         </View>

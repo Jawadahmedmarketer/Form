@@ -9,6 +9,7 @@ import {
   markAgreementViewed,
   toPublicAgreement,
 } from "@/lib/agreement";
+import { getGhlRepresentativeDetails } from "@/lib/ghl";
 import { getAuthorizedSignatureDataUrl } from "@/lib/representative-signature";
 import { SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import { isLikelyToken } from "@/lib/tokens";
@@ -69,6 +70,9 @@ export default async function AgreementPage({
   }
 
   const viewed = await markAgreementViewed(row);
+  const fromGhl = await getGhlRepresentativeDetails(viewed.ghl_contact_id);
+  if (fromGhl.name) viewed.representative_name = fromGhl.name;
+  if (fromGhl.title) viewed.representative_title = fromGhl.title;
   const representativeSignatureDataUrl =
     (viewed.representative_signature_path
       ? await downloadStorageDataUrl(SIGNATURE_BUCKET, viewed.representative_signature_path, "image/png")

@@ -71,6 +71,142 @@ function extractContactId(payload: unknown): string | null {
 
 export type GhlSyncPhase = "draft" | "signed";
 
+export type GhlRepresentativeDetails = {
+  name: string;
+  title: string;
+  date: string;
+};
+
+type GhlCustomFieldDef = {
+  id?: string;
+  name?: string;
+  fieldKey?: string;
+};
+
+type GhlContactCustomField = {
+  id?: string;
+  value?: unknown;
+  field_value?: unknown;
+};
+
+let resolvedRepresentativeFieldIds: {
+  name?: string;
+  title?: string;
+  date?: string;
+} | null = null;
+
+function normalizeFieldName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function stringifyFieldValue(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  if (Array.isArray(value)) {
+    return value.map((item) => stringifyFieldValue(item)).filter(Boolean).join(", ");
+  }
+  return "";
+}
+
+function matchRepresentativeField(name: string, kind: "name" | "title" | "date") {
+  const normalized = normalizeFieldName(name);
+  if (kind === "title") {
+    return normalized.includes("representative title");
+  }
+  if (kind === "date") {
+    return (
+      normalized.includes("company authorization date") ||
+      normalized.includes("representative date")
+    );
+  }
+  return normalized.includes("representative name") && !normalized.includes("title");
+}
+
+async function ensureRepresentativeFieldIds() {
+  if (resolvedRepresentativeFieldIds) return resolvedRepresentativeFieldIds;
+
+  const mapping = getGhlFieldMapping();
+  resolvedRepresentativeFieldIds = {
+    name: mapping.representativeName,
+    title: mapping.representativeTitle,
+    date: mapping.representativeDate,
+  };
+
+  if (
+    resolvedRepresentativeFieldIds.name &&
+    resolvedRepresentativeFieldIds.title &&
+    resolvedRepresentativeFieldIds.date
+  ) {
+    return resolvedRepresentativeFieldIds;
+  }
+
+  const { token, locationId } = getGhlConfig();
+  if (!token || !locationId) return resolvedRepresentativeFieldIds;
+
+  try {
+    const payload = (await ghlFetch(`/locations/${locationId}/customFields?model=contact`, token, {
+      method: "GET",
+    })) as { customFields?: GhlCustomFieldDef[]; fields?: GhlCustomFieldDef[] };
+    const defs = payload.customFields || payload.fields || [];
+    for (const def of defs) {
+      const label = `${def.name || ""} ${def.fieldKey || ""}`;
+      if (!def.id) continue;
+      if (!resolvedRepresentativeFieldIds.name && matchRepresentativeField(label, "name")) {
+        resolvedRepresentativeFieldIds.name = def.id;
+      }
+      if (!resolvedRepresentativeFieldIds.title && matchRepresentativeField(label, "title")) {
+        resolvedRepresentativeFieldIds.title = def.id;
+      }
+      if (!resolvedRepresentativeFieldIds.date && matchRepresentativeField(label, "date")) {
+        resolvedRepresentativeFieldIds.date = def.id;
+      }
+    }
+  } catch (error) {
+    logWarn("ghl.custom_fields_lookup_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+  }
+
+  return resolvedRepresentativeFieldIds;
+}
+
+function valueForFieldId(fields: GhlContactCustomField[], fieldId: string | undefined): string {
+  if (!fieldId) return "";
+  const match = fields.find((field) => field.id === fieldId);
+  return stringifyFieldValue(match?.value ?? match?.field_value);
+}
+
+export async function getGhlRepresentativeDetails(
+  contactId: string | null | undefined,
+): Promise<GhlRepresentativeDetails> {
+  const empty = { name: "", title: "", date: "" };
+  if (!contactId) return empty;
+
+  const { token } = getGhlConfig();
+  if (!token) return empty;
+
+  try {
+    const ids = await ensureRepresentativeFieldIds();
+    const payload = (await ghlFetch(`/contacts/${contactId}`, token, {
+      method: "GET",
+    })) as {
+      contact?: { customFields?: GhlContactCustomField[] };
+      customFields?: GhlContactCustomField[];
+    };
+    const fields = payload.contact?.customFields || payload.customFields || [];
+    return {
+      name: valueForFieldId(fields, ids.name),
+      title: valueForFieldId(fields, ids.title),
+      date: valueForFieldId(fields, ids.date),
+    };
+  } catch (error) {
+    logWarn("ghl.representative_lookup_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    return empty;
+  }
+}
+
 function agreementStatusFor(row: AgreementRow, phase: GhlSyncPhase) {
   if (phase === "signed" || row.status === "signed") return GHL_AGREEMENT_STATUS_SIGNED;
   if (row.status === "draft") return GHL_AGREEMENT_STATUS_DRAFT;
@@ -79,6 +215,7 @@ function agreementStatusFor(row: AgreementRow, phase: GhlSyncPhase) {
 
 function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
   const mapping = getGhlFieldMapping();
+  const resolved = resolvedRepresentativeFieldIds;
   const fields: { id: string; field_value: string }[] = [];
   const selected = formatSelectedServices(
     Array.isArray(row.selected_services) ? row.selected_services : [],
@@ -94,6 +231,14 @@ function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
     [
       mapping.agreementLink,
       row.public_token ? `${getAppUrl()}/agreement/${row.public_token}` : "",
+    ],
+    [mapping.representativeName || resolved?.name, row.representative_name || ""],
+    [mapping.representativeTitle || resolved?.title, row.representative_title || ""],
+    [
+      mapping.representativeDate || resolved?.date,
+      phase === "signed"
+        ? (row.representative_date || row.signed_at || "").slice(0, 10)
+        : (row.representative_date || "").slice(0, 10),
     ],
   ];
 
@@ -119,6 +264,8 @@ export async function upsertGhlContact(row: AgreementRow, phase: GhlSyncPhase = 
   }
 
   logInfo("ghl.contact_sync_started", { agreementId: row.id, phase });
+
+  await ensureRepresentativeFieldIds();
 
   const fields: Record<string, unknown> = {
     firstName: row.first_name || "",
