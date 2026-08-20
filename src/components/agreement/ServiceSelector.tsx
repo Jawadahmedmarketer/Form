@@ -86,7 +86,7 @@ export function ServiceSelector({
           <TextInput
             type="date"
             value={toDateInputValue(serviceStartDate)}
-            disabled={locked}
+            disabled
             onChange={(event) => onServiceStartDate(event.target.value)}
           />
         </FormField>
@@ -94,7 +94,7 @@ export function ServiceSelector({
           <TextInput
             type="date"
             value={toDateInputValue(serviceEndDate)}
-            disabled={locked}
+            disabled
             onChange={(event) => onServiceEndDate(event.target.value)}
           />
         </FormField>
