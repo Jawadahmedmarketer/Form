@@ -133,7 +133,7 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-2">
+    <form onSubmit={onSubmit}>
       <AgreementHeader />
 
       <AgreementSection number={1} title="CLIENT INFORMATION">
