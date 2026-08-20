@@ -1,9 +1,9 @@
 import { REPRESENTATIVE } from "@/config/company";
-import { mergeFieldLocks } from "@/lib/field-locks";
+import { mergeFieldLocks, withServiceDescriptionLock } from "@/lib/field-locks";
 import { logError, logInfo } from "@/lib/logger";
 import { dataUrlToBuffer, generateSignatureFromName } from "@/lib/representative-signature";
 import { getSupabaseAdmin, PDF_BUCKET, SIGNATURE_BUCKET } from "@/lib/supabase/admin";
-import type { AgreementRow, PublicAgreement } from "@/lib/supabase/types";
+import type { AgreementRow, FieldLocks, PublicAgreement } from "@/lib/supabase/types";
 import { createPublicToken } from "@/lib/tokens";
 import type { AdminCreateFormInput, CreateAgreementInput } from "@/lib/validation";
 
@@ -134,7 +134,7 @@ export async function createAgreement(input: CreateAgreementInput) {
       payment_method: emptyToNull(input.paymentMethod),
       representative_name: input.representativeName || REPRESENTATIVE.printedName,
       representative_title: input.representativeTitle || REPRESENTATIVE.title,
-      field_locks: input.fieldLocks ?? {},
+      field_locks: withServiceDescriptionLock(input.fieldLocks, input.serviceDescription),
       payment_url: emptyToNull(input.paymentUrl),
       expires_at: emptyToNull(input.expiresAt),
       sent_at: input.status === "sent" ? now : null,
@@ -179,7 +179,11 @@ export async function createAgreement(input: CreateAgreementInput) {
   return created;
 }
 
-export async function updateAgreementDraft(id: string, input: AdminCreateFormInput) {
+export async function updateAgreementDraft(
+  id: string,
+  input: AdminCreateFormInput,
+  existingLocks?: FieldLocks | null,
+) {
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
@@ -209,6 +213,7 @@ export async function updateAgreementDraft(id: string, input: AdminCreateFormInp
       payment_url: emptyToNull(input.paymentUrl),
       representative_name: emptyToNull(input.representativeName) || REPRESENTATIVE.printedName,
       representative_title: emptyToNull(input.representativeTitle) || REPRESENTATIVE.title,
+      field_locks: withServiceDescriptionLock(existingLocks, input.serviceDescription),
     })
     .eq("id", id)
     .select("*")

@@ -47,7 +47,7 @@ export async function PATCH(
   }
 
   try {
-    await updateAgreementDraft(existing.id, parsed.data);
+    await updateAgreementDraft(existing.id, parsed.data, existing.field_locks);
     return NextResponse.json({ ok: true });
   } catch (error) {
     logError("admin.agreement_update_failed", {

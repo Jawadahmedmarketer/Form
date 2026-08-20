@@ -15,6 +15,7 @@ export function ServiceSelector({
   onOtherService,
   serviceDescription,
   onServiceDescription,
+  serviceDescriptionLocked,
   serviceStartDate,
   onServiceStartDate,
   serviceEndDate,
@@ -28,6 +29,7 @@ export function ServiceSelector({
   onOtherService: (value: string) => void;
   serviceDescription: string;
   onServiceDescription: (value: string) => void;
+  serviceDescriptionLocked?: boolean;
   serviceStartDate: string;
   onServiceStartDate: (value: string) => void;
   serviceEndDate: string;
@@ -76,7 +78,7 @@ export function ServiceSelector({
         <FormField label="Service Description / Notes">
           <TextArea
             value={serviceDescription}
-            disabled={locked}
+            disabled={serviceDescriptionLocked}
             onChange={(event) => onServiceDescription(event.target.value)}
           />
         </FormField>

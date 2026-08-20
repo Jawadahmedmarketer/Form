@@ -197,6 +197,7 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
           onOtherService={(value) => setValue("otherService", value)}
           serviceDescription={watch("serviceDescription")}
           onServiceDescription={(value) => setValue("serviceDescription", value)}
+          serviceDescriptionLocked={isLocked(agreement.fieldLocks.serviceDescription)}
           serviceStartDate={watch("serviceStartDate")}
           onServiceStartDate={(value) => setValue("serviceStartDate", value)}
           serviceEndDate={watch("serviceEndDate")}

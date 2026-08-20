@@ -28,3 +28,17 @@ export function mergeFieldLocks(locks?: FieldLocks | null): Required<FieldLocks>
 export function isLocked(mode: FieldLockMode | undefined) {
   return mode === "locked";
 }
+
+/** Lock service description when admin/GHL prefilled a non-empty value. */
+export function withServiceDescriptionLock(
+  locks: FieldLocks | null | undefined,
+  serviceDescription?: string | null,
+): FieldLocks {
+  const next: FieldLocks = { ...(locks ?? {}) };
+  if (serviceDescription?.trim()) {
+    next.serviceDescription = "locked";
+  } else {
+    delete next.serviceDescription;
+  }
+  return next;
+}
