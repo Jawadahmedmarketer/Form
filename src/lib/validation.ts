@@ -2,6 +2,21 @@ import { z } from "zod";
 import { SERVICE_OPTIONS, normalizeSelectedServices } from "@/config/services";
 
 const serviceIds = SERVICE_OPTIONS.map((service) => service.id) as [string, ...string[]];
+const selectedServiceIdList = z.array(z.enum(serviceIds));
+
+/**
+ * Runtime: accept array / CSV / JSON via normalizeSelectedServices.
+ * Types: string[] in and out so zodResolver matches useForm (z.preprocess
+ * would otherwise type the field input as unknown and break RHF inference).
+ */
+function preprocessSelectedServices<T extends z.ZodType<string[]>>(
+  schema: T,
+): z.ZodType<z.output<T>, z.ZodTypeDef, z.output<T>> {
+  return z.preprocess(
+    (value: unknown) => normalizeSelectedServices(value),
+    schema,
+  ) as z.ZodType<z.output<T>, z.ZodTypeDef, z.output<T>>;
+}
 
 const optionalText = z.string().trim().max(2000);
 const requiredText = z.string().trim().min(1, "This field is required.").max(200);
@@ -24,9 +39,8 @@ export const signAgreementSchema = z
     taxPeriod: optionalText,
     agreementDate: z.string().trim().min(1, "Agreement date is required."),
     businessesCovered: z.string().trim().max(4000),
-    selectedServices: z.preprocess(
-      (value) => normalizeSelectedServices(value),
-      z.array(z.enum(serviceIds)).min(1, "Select at least one service."),
+    selectedServices: preprocessSelectedServices(
+      selectedServiceIdList.min(1, "Select at least one service."),
     ),
     otherService: optionalText,
     serviceDescription: z.string().trim().max(4000),
@@ -83,10 +97,7 @@ export const createAgreementSchema = z.preprocess((raw) => {
   taxPeriod: z.string().trim().max(200).optional().default(""),
   agreementDate: z.string().trim().optional().default(""),
   businessesCovered: z.string().trim().max(4000).optional().default(""),
-  selectedServices: z
-    .preprocess((value) => normalizeSelectedServices(value), z.array(z.enum(serviceIds)))
-    .optional()
-    .default([]),
+  selectedServices: preprocessSelectedServices(selectedServiceIdList).optional().default([]),
   otherService: z.string().trim().max(2000).optional().default(""),
   representativeName: z.string().trim().max(80).optional().default(""),
   representativeTitle: z.string().trim().max(80).optional().default(""),
@@ -128,9 +139,8 @@ export const adminCreateFormSchema = z
     taxPeriod: z.string().trim().max(200),
     agreementDate: z.string().trim(),
     businessesCovered: z.string().trim().max(4000),
-    selectedServices: z.preprocess(
-      (value) => normalizeSelectedServices(value),
-      z.array(z.enum(serviceIds)).min(1, "Select at least one service."),
+    selectedServices: preprocessSelectedServices(
+      selectedServiceIdList.min(1, "Select at least one service."),
     ),
     otherService: z.string().trim().max(2000),
     representativeName: z.string().trim().max(80),

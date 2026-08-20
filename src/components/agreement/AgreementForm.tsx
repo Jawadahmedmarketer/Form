@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -103,6 +103,13 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
   const selectedServices = watch("selectedServices");
   const representativeDate = agreement.representativeDate || localDate();
   const submitting = isSubmitting || Boolean(progress);
+
+  useEffect(() => {
+    setValue("selectedServices", agreement.selectedServices ?? [], {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [agreement.selectedServices, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError("");

@@ -134,6 +134,13 @@ export async function POST(
     return jsonError("Invalid request.", 400);
   }
 
+  if (json && typeof json === "object" && !Array.isArray(json)) {
+    const body = json as Record<string, unknown>;
+    const submitted = normalizeSelectedServices(body.selectedServices);
+    const stored = normalizeSelectedServices(existing.selected_services);
+    body.selectedServices = submitted.length ? submitted : stored;
+  }
+
   const parsed = signAgreementSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
