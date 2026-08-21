@@ -62,15 +62,6 @@ export const signAgreementSchema = z
     clientPrintedName: requiredText.max(120),
     clientTitle: optionalText,
     clientSignedDate: z.string().trim().min(1, "Signature date is required."),
-  })
-  .superRefine((value, ctx) => {
-    if (value.selectedServices.includes("other") && !value.otherService.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["otherService"],
-        message: "Describe the other service.",
-      });
-    }
   });
 
 export type SignAgreementInput = z.infer<typeof signAgreementSchema>;

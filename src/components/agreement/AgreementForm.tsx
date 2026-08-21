@@ -200,8 +200,6 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
               : [...selectedServices, id];
             setValue("selectedServices", next, { shouldValidate: true });
           }}
-          otherService={watch("otherService")}
-          onOtherService={(value) => setValue("otherService", value)}
           serviceDescription={watch("serviceDescription")}
           onServiceDescription={(value) => setValue("serviceDescription", value)}
           serviceDescriptionLocked={isLocked(agreement.fieldLocks.serviceDescription)}
@@ -211,7 +209,6 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
           onServiceEndDate={(value) => setValue("serviceEndDate", value)}
           errors={{
             selectedServices: errors.selectedServices?.message,
-            otherService: errors.otherService?.message,
           }}
         />
       </AgreementSection>

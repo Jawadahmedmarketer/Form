@@ -11,8 +11,6 @@ export function ServiceSelector({
   selected,
   onToggle,
   locked,
-  otherService,
-  onOtherService,
   serviceDescription,
   onServiceDescription,
   serviceDescriptionLocked,
@@ -25,8 +23,6 @@ export function ServiceSelector({
   selected: string[];
   onToggle: (id: string) => void;
   locked?: boolean;
-  otherService: string;
-  onOtherService: (value: string) => void;
   serviceDescription: string;
   onServiceDescription: (value: string) => void;
   serviceDescriptionLocked?: boolean;
@@ -36,7 +32,6 @@ export function ServiceSelector({
   onServiceEndDate: (value: string) => void;
   errors?: {
     selectedServices?: string;
-    otherService?: string;
   };
 }) {
   return (
@@ -68,13 +63,6 @@ export function ServiceSelector({
         <p className="text-xs text-red-600">{errors.selectedServices}</p>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Other Service" error={errors?.otherService}>
-          <TextInput
-            value={otherService}
-            disabled={locked}
-            onChange={(event) => onOtherService(event.target.value)}
-          />
-        </FormField>
         <FormField label="Service Description / Notes">
           <TextArea
             value={serviceDescription}
