@@ -79,12 +79,20 @@ export function ServiceSelector({
           />
         </FormField>
         <FormField label="Service End Date">
-          <TextInput
-            type="date"
-            value={toDateInputValue(serviceEndDate)}
-            disabled
-            onChange={(event) => onServiceEndDate(event.target.value)}
-          />
+          {serviceEndDate && !/^\d{4}-\d{2}-\d{2}$/.test(serviceEndDate) ? (
+            <TextInput
+              value={serviceEndDate}
+              disabled
+              readOnly
+            />
+          ) : (
+            <TextInput
+              type="date"
+              value={toDateInputValue(serviceEndDate)}
+              disabled
+              onChange={(event) => onServiceEndDate(event.target.value)}
+            />
+          )}
         </FormField>
       </div>
     </div>

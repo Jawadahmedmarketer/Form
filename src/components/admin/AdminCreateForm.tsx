@@ -38,13 +38,13 @@ function defaultValues(): AdminCreateFormInput {
     otherService: "",
     serviceDescription: "",
     serviceStartDate: "",
-    serviceEndDate: "",
+    serviceEndDate: "Ongoing — no fixed end date",
     setupFee: "",
     monthlyFee: "",
     setupFeeLabel: "",
     monthlyFeeLabel: "",
     paymentSchedule: "Setup due on signing; monthly thereafter",
-    paymentMethod: "Card or ACH",
+    paymentMethod: "Card / bank payment via secure payment link",
     ghlContactId: "",
     paymentUrl: "",
     status: "sent",
@@ -83,6 +83,10 @@ export function AdminCreateForm({
   const defaults = useMemo(
     () => (mode === "edit" && initialValues ? initialValues : defaultValues()),
     [mode, initialValues],
+  );
+
+  const [isOngoingEndDate, setIsOngoingEndDate] = useState(
+    !defaults.serviceEndDate || !/^\d{4}-\d{2}-\d{2}$/.test(defaults.serviceEndDate),
   );
 
   const form = useForm<AdminCreateFormInput>({
@@ -306,9 +310,55 @@ export function AdminCreateForm({
               <FormField label="Service start date" error={errors.serviceStartDate?.message}>
                 <TextInput type="date" error={errors.serviceStartDate?.message} {...register("serviceStartDate")} />
               </FormField>
-              <FormField label="Service end date" error={errors.serviceEndDate?.message}>
-                <TextInput type="date" error={errors.serviceEndDate?.message} {...register("serviceEndDate")} />
-              </FormField>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">Service end date</span>
+                  <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOngoingEndDate(true);
+                        setValue("serviceEndDate", "Ongoing — no fixed end date");
+                      }}
+                      className={`rounded-md px-2.5 py-1 font-medium transition ${
+                        isOngoingEndDate
+                          ? "bg-white text-blue-700 shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Ongoing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOngoingEndDate(false);
+                        setValue("serviceEndDate", "");
+                      }}
+                      className={`rounded-md px-2.5 py-1 font-medium transition ${
+                        !isOngoingEndDate
+                          ? "bg-white text-blue-700 shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Specific Date
+                    </button>
+                  </div>
+                </div>
+                {isOngoingEndDate ? (
+                  <div className="flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700">
+                    Ongoing — no fixed end date
+                  </div>
+                ) : (
+                  <TextInput
+                    type="date"
+                    error={errors.serviceEndDate?.message}
+                    {...register("serviceEndDate")}
+                  />
+                )}
+                {errors.serviceEndDate?.message ? (
+                  <p className="text-xs text-red-600">{errors.serviceEndDate.message}</p>
+                ) : null}
+              </div>
             </div>
           </Section>
 

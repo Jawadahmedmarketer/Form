@@ -70,6 +70,7 @@ export function FeeFields({
       <FormField label="Payment Method">
         <TextInput
           value={paymentMethod}
+          placeholder="Card / bank payment via secure payment link"
           disabled={locked}
           onChange={(event) => onChange("paymentMethod", event.target.value)}
         />
