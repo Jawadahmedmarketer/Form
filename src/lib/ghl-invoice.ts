@@ -179,7 +179,7 @@ export async function createAgreementInvoice(
         discount: { type: "percentage", value: 0 },
         items,
         total,
-        title: "",
+        title: "Thank you for your business",
         amountDue: total,
         liveMode: true,
         automaticTaxesEnabled: false,
