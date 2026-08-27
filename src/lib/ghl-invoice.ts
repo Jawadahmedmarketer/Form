@@ -163,7 +163,6 @@ export async function createAgreementInvoice(
         altType: "location",
         name: `Service Agreement Invoice - ${params.contactName}`,
         businessDetails: {
-          name: COMPANY.brandName,
           logoUrl: COMPANY.logoUrl,
         },
         invoiceNumber: String(Date.now()),
