@@ -8,6 +8,7 @@ export const COMPANY = {
   phone: "+1 213-474-3648",
   website: "unifiedtaxgroup.com",
   websiteUrl: "https://unifiedtaxgroup.com",
+  logoUrl: "https://assets.cdn.filesafe.space/WOG9so8Qbi6zmKfxzlcZ/media/69fc76c3bc1f77cc35aafa32.png",
 } as const;
 
 export const COMPANY_ADDRESS_SINGLE_LINE = `${COMPANY.addressLine1}, ${COMPANY.addressLine2}`;

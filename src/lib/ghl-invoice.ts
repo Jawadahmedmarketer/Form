@@ -1,3 +1,4 @@
+import { COMPANY } from "@/config/company";
 import { formatSelectedServices } from "@/config/services";
 import { logError, logInfo } from "@/lib/logger";
 
@@ -161,7 +162,10 @@ export async function createAgreementInvoice(
         altId: locationId,
         altType: "location",
         name: `Service Agreement Invoice - ${params.contactName}`,
-        businessDetails: { name: "Unified Tax Group" },
+        businessDetails: {
+          name: COMPANY.brandName,
+          logoUrl: COMPANY.logoUrl,
+        },
         invoiceNumber: String(Date.now()),
         currency: "USD",
         contactDetails: {
@@ -175,7 +179,7 @@ export async function createAgreementInvoice(
         discount: { type: "percentage", value: 0 },
         items,
         total,
-        title: "Unified Tax Group",
+        title: "INVOICE",
         amountDue: total,
         liveMode: true,
         automaticTaxesEnabled: false,
