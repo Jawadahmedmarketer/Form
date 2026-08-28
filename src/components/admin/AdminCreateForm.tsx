@@ -6,6 +6,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { BusinessCoveredBuilder } from "@/components/admin/BusinessCoveredBuilder";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { FormField, TextArea, TextInput } from "@/components/agreement/FormField";
 import { SERVICE_OPTIONS } from "@/config/services";
@@ -267,9 +268,14 @@ export function AdminCreateForm({
                 <TextInput error={errors.businessAddress?.message} {...register("businessAddress")} />
               </FormField>
               <div className="sm:col-span-2">
-                <FormField label="Businesses covered" error={errors.businessesCovered?.message}>
-                  <TextArea error={errors.businessesCovered?.message} {...register("businessesCovered")} />
-                </FormField>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                  Businesses covered
+                </label>
+                <BusinessCoveredBuilder
+                  value={watch("businessesCovered")}
+                  onChange={(val) => setValue("businessesCovered", val, { shouldValidate: true })}
+                  error={errors.businessesCovered?.message}
+                />
               </div>
             </div>
           </Section>
