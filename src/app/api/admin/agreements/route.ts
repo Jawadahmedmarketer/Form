@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       const fromGhl = await getGhlRepresentativeDetails(input.ghlContactId);
       if (!input.representativeName && fromGhl.name) input.representativeName = fromGhl.name;
       if (!input.representativeTitle && fromGhl.title) input.representativeTitle = fromGhl.title;
+      if (!input.businessesCovered && fromGhl.businessesCovered) input.businessesCovered = fromGhl.businessesCovered;
     }
 
     const row = await createAgreement(input);

@@ -75,6 +75,7 @@ export type GhlRepresentativeDetails = {
   name: string;
   title: string;
   date: string;
+  businessesCovered?: string;
 };
 
 type GhlCustomFieldDef = {
@@ -93,6 +94,7 @@ let resolvedRepresentativeFieldIds: {
   name?: string;
   title?: string;
   date?: string;
+  businessesCovered?: string;
 } | null = null;
 
 function normalizeFieldName(value: string) {
@@ -160,6 +162,15 @@ async function ensureRepresentativeFieldIds() {
       if (!resolvedRepresentativeFieldIds.date && matchRepresentativeField(label, "date")) {
         resolvedRepresentativeFieldIds.date = def.id;
       }
+      if (
+        !resolvedRepresentativeFieldIds.businessesCovered &&
+        (normalizeFieldName(label).includes("businesses covered") ||
+          normalizeFieldName(label).includes("business covered") ||
+          normalizeFieldName(label).includes("businesses serviced") ||
+          normalizeFieldName(label).includes("business serviced"))
+      ) {
+        resolvedRepresentativeFieldIds.businessesCovered = def.id;
+      }
     }
   } catch (error) {
     logWarn("ghl.custom_fields_lookup_failed", {
@@ -179,7 +190,7 @@ function valueForFieldId(fields: GhlContactCustomField[], fieldId: string | unde
 export async function getGhlRepresentativeDetails(
   contactId: string | null | undefined,
 ): Promise<GhlRepresentativeDetails> {
-  const empty = { name: "", title: "", date: "" };
+  const empty = { name: "", title: "", date: "", businessesCovered: "" };
   if (!contactId) return empty;
 
   const { token } = getGhlConfig();
@@ -198,6 +209,7 @@ export async function getGhlRepresentativeDetails(
       name: valueForFieldId(fields, ids.name),
       title: valueForFieldId(fields, ids.title),
       date: valueForFieldId(fields, ids.date),
+      businessesCovered: valueForFieldId(fields, ids.businessesCovered),
     };
   } catch (error) {
     logWarn("ghl.representative_lookup_failed", {
