@@ -4,6 +4,7 @@ import {
   GHL_AGREEMENT_STATUS_SIGNED,
   GHL_AGREEMENT_TYPE_VALUE,
   getGhlFieldMapping,
+} from "@/config/ghl-fields";
 import { formatBusinesses, type BusinessItem } from "@/lib/business-builder";
 import { formatSelectedServices } from "@/config/services";
 import { getAppUrl } from "@/lib/agreement";
