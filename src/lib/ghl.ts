@@ -207,25 +207,45 @@ export async function getGhlRepresentativeDetails(
     // If single field is empty, check for individual numbered fields (Business 1 Name, Business 1 Software, Business 2 Name, etc.)
     if (!businessesCovered.trim()) {
       const items: BusinessItem[] = [];
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= 5; i++) {
         const nameDef = cachedGhlCustomFieldDefs.find((d) => {
-          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
-          return norm === `business ${i} name` || norm === `business ${i}` || norm === `business${i} name`;
-        });
-        const natureDef = cachedGhlCustomFieldDefs.find((d) => {
-          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
-          return norm.includes(`business ${i} nature`) || norm.includes(`business${i} nature`);
-        });
-        const softwareDef = cachedGhlCustomFieldDefs.find((d) => {
-          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
-          return norm.includes(`business ${i} software`) || norm.includes(`business${i} software`);
-        });
-        const basisDef = cachedGhlCustomFieldDefs.find((d) => {
-          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
+          const n = normalizeFieldName(d.name || "");
+          const k = normalizeFieldName(d.fieldKey || "");
           return (
-            norm.includes(`business ${i} accounting basis`) ||
-            norm.includes(`business ${i} basis`) ||
-            norm.includes(`business${i} basis`)
+            (n.includes(`business ${i}`) && (n.includes("name") || n === `business ${i}`)) ||
+            k.includes(`business_${i}_name`) ||
+            k.includes(`business${i}_name`)
+          ) && !n.includes("nature") && !n.includes("software") && !n.includes("basis");
+        });
+
+        const natureDef = cachedGhlCustomFieldDefs.find((d) => {
+          const n = normalizeFieldName(d.name || "");
+          const k = normalizeFieldName(d.fieldKey || "");
+          return (
+            (n.includes(`business ${i}`) && n.includes("nature")) ||
+            k.includes(`business_${i}_nature`) ||
+            k.includes(`business${i}_nature`)
+          );
+        });
+
+        const softwareDef = cachedGhlCustomFieldDefs.find((d) => {
+          const n = normalizeFieldName(d.name || "");
+          const k = normalizeFieldName(d.fieldKey || "");
+          return (
+            (n.includes(`business ${i}`) && n.includes("software")) ||
+            k.includes(`business_${i}_software`) ||
+            k.includes(`business${i}_software`)
+          );
+        });
+
+        const basisDef = cachedGhlCustomFieldDefs.find((d) => {
+          const n = normalizeFieldName(d.name || "");
+          const k = normalizeFieldName(d.fieldKey || "");
+          return (
+            (n.includes(`business ${i}`) && (n.includes("basis") || n.includes("accounting"))) ||
+            k.includes(`business_${i}_basis`) ||
+            k.includes(`business_${i}_accounting_basis`) ||
+            k.includes(`business${i}_basis`)
           );
         });
 

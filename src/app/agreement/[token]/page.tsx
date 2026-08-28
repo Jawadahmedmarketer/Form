@@ -73,7 +73,7 @@ export default async function AgreementPage({
   const fromGhl = await getGhlRepresentativeDetails(viewed.ghl_contact_id);
   if (fromGhl.name) viewed.representative_name = fromGhl.name;
   if (fromGhl.title) viewed.representative_title = fromGhl.title;
-  if (!viewed.businesses_covered && fromGhl.businessesCovered) viewed.businesses_covered = fromGhl.businessesCovered;
+  if (fromGhl.businessesCovered?.trim()) viewed.businesses_covered = fromGhl.businessesCovered;
   const representativeSignatureDataUrl =
     (viewed.representative_signature_path
       ? await downloadStorageDataUrl(SIGNATURE_BUCKET, viewed.representative_signature_path, "image/png")
