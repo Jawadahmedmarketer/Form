@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
       if (!input.representativeName && fromGhl.name) input.representativeName = fromGhl.name;
       if (!input.representativeTitle && fromGhl.title) input.representativeTitle = fromGhl.title;
       if (!input.businessesCovered && fromGhl.businessesCovered) input.businessesCovered = fromGhl.businessesCovered;
+      if ((!input.selectedServices || input.selectedServices.length === 0) && fromGhl.selectedServices?.length) {
+        input.selectedServices = fromGhl.selectedServices;
+      }
     }
 
     const row = await createAgreement(input);

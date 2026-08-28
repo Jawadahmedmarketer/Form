@@ -74,6 +74,7 @@ export default async function AgreementPage({
   if (fromGhl.name) viewed.representative_name = fromGhl.name;
   if (fromGhl.title) viewed.representative_title = fromGhl.title;
   if (fromGhl.businessesCovered?.trim()) viewed.businesses_covered = fromGhl.businessesCovered;
+  if (fromGhl.selectedServices?.length) viewed.selected_services = fromGhl.selectedServices;
   const representativeSignatureDataUrl =
     (viewed.representative_signature_path
       ? await downloadStorageDataUrl(SIGNATURE_BUCKET, viewed.representative_signature_path, "image/png")

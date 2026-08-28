@@ -21,6 +21,17 @@ export function formatSelectedServices(ids: string[] | null | undefined) {
   return ids.map((id) => SERVICE_LABELS[id] ?? id);
 }
 
+function cleanKey(str: string): string {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
+}
+
+const SERVICE_LOOKUP: Record<string, string> = {};
+for (const service of SERVICE_OPTIONS) {
+  SERVICE_LOOKUP[service.id] = service.id;
+  SERVICE_LOOKUP[cleanKey(service.id)] = service.id;
+  SERVICE_LOOKUP[cleanKey(service.label)] = service.id;
+}
+
 /** Accept array, comma-separated string, or JSON-encoded array from GHL/n8n/jsonb. */
 export function normalizeSelectedServices(raw: unknown): string[] {
   if (raw == null || raw === "") return [];
@@ -50,10 +61,12 @@ export function normalizeSelectedServices(raw: unknown): string[] {
   const seen = new Set<string>();
   const normalized: string[] = [];
   for (const item of items) {
-    const id = item.trim().replace(/^["']|["']$/g, "");
-    if (!id || !(id in SERVICE_LABELS) || seen.has(id)) continue;
-    seen.add(id);
-    normalized.push(id);
+    const rawVal = item.trim().replace(/^["']|["']$/g, "");
+    if (!rawVal) continue;
+    const resolvedId = SERVICE_LOOKUP[rawVal] || SERVICE_LOOKUP[cleanKey(rawVal)];
+    if (!resolvedId || seen.has(resolvedId)) continue;
+    seen.add(resolvedId);
+    normalized.push(resolvedId);
   }
   return normalized;
 }

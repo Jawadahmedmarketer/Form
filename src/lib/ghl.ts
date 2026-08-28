@@ -6,18 +6,13 @@ import {
   getGhlFieldMapping,
 } from "@/config/ghl-fields";
 import { formatBusinesses, type BusinessItem } from "@/lib/business-builder";
-import { formatSelectedServices } from "@/config/services";
+import { formatSelectedServices, normalizeSelectedServices } from "@/config/services";
 import { getAppUrl } from "@/lib/agreement";
 import { logError, logInfo, logWarn } from "@/lib/logger";
 import type { AgreementRow } from "@/lib/supabase/types";
 
 const GHL_API_BASE = "https://services.leadconnectorhq.com";
 const GHL_API_VERSION = "2021-07-28";
-
-type GhlContact = {
-  id?: string;
-  contact?: { id?: string };
-};
 
 function getGhlConfig() {
   return {
@@ -50,23 +45,34 @@ async function ghlFetch(path: string, token: string, init: RequestInit) {
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
-    json = { raw: text.slice(0, 300) };
+    json = null;
   }
 
   if (!response.ok) {
-    const message =
-      (json as { message?: string; error?: string })?.message ||
-      (json as { error?: string })?.error ||
-      `HighLevel request failed (${response.status})`;
-    throw new Error(message);
+    const error = new Error(`GHL HTTP ${response.status}: ${text}`);
+    (error as Error & { status?: number; payload?: unknown }).status = response.status;
+    (error as Error & { status?: number; payload?: unknown }).payload = json;
+    throw error;
   }
 
   return json;
 }
 
-function extractContactId(payload: unknown): string | null {
+export function extractGhlContactId(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
-  const data = payload as GhlContact & { contactId?: string };
+  const data = payload as Record<string, unknown>;
+  const contact = (data.contact as Record<string, unknown> | undefined) || data;
+  return (
+    (typeof contact.id === "string" ? contact.id : null) ||
+    (typeof contact.contact_id === "string" ? contact.contact_id : null) ||
+    (typeof data.contact_id === "string" ? data.contact_id : null) ||
+    null
+  );
+}
+
+export function ghlContactIdFromPayload(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const data = payload as { id?: string; contactId?: string; contact?: { id?: string } };
   return data.contact?.id || data.id || data.contactId || null;
 }
 
@@ -77,6 +83,7 @@ export type GhlRepresentativeDetails = {
   title: string;
   date: string;
   businessesCovered?: string;
+  selectedServices?: string[];
 };
 
 type GhlCustomFieldDef = {
@@ -96,6 +103,7 @@ let resolvedRepresentativeFieldIds: {
   title?: string;
   date?: string;
   businessesCovered?: string;
+  selectedServices?: string;
 } | null = null;
 
 function normalizeFieldName(value: string) {
@@ -167,6 +175,15 @@ async function ensureRepresentativeFieldIds() {
       ) {
         resolvedRepresentativeFieldIds.businessesCovered = def.id;
       }
+      if (
+        !resolvedRepresentativeFieldIds.selectedServices &&
+        (normalizeFieldName(def.name || "") === "select" ||
+          normalizeFieldName(label).includes("selected services") ||
+          normalizeFieldName(label).includes("services included") ||
+          normalizeFieldName(def.name || "") === "services")
+      ) {
+        resolvedRepresentativeFieldIds.selectedServices = def.id;
+      }
     }
   } catch (error) {
     logWarn("ghl.custom_fields_lookup_failed", {
@@ -186,7 +203,7 @@ function valueForFieldId(fields: GhlContactCustomField[], fieldId: string | unde
 export async function getGhlRepresentativeDetails(
   contactId: string | null | undefined,
 ): Promise<GhlRepresentativeDetails> {
-  const empty = { name: "", title: "", date: "", businessesCovered: "" };
+  const empty = { name: "", title: "", date: "", businessesCovered: "", selectedServices: [] };
   if (!contactId) return empty;
 
   const { token } = getGhlConfig();
@@ -264,11 +281,15 @@ export async function getGhlRepresentativeDetails(
       }
     }
 
+    const rawServices = valueForFieldId(fields, ids.selectedServices);
+    const selectedServices = rawServices ? normalizeSelectedServices(rawServices) : [];
+
     return {
       name: valueForFieldId(fields, ids.name),
       title: valueForFieldId(fields, ids.title),
       date: valueForFieldId(fields, ids.date),
       businessesCovered,
+      selectedServices,
     };
   } catch (error) {
     logWarn("ghl.representative_lookup_failed", {
