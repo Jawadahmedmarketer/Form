@@ -14,13 +14,13 @@ export const pdfColors = {
 
 export const pdfStyles = StyleSheet.create({
   page: {
-    paddingTop: 36,
-    paddingBottom: 48,
-    paddingHorizontal: 42,
+    paddingTop: 32,
+    paddingBottom: 38,
+    paddingHorizontal: 40,
     fontFamily: "Times-Roman",
     fontSize: 10,
     color: pdfColors.text,
-    lineHeight: 1.45,
+    lineHeight: 1.4,
   },
   brand: {
     textAlign: "center",
@@ -31,37 +31,37 @@ export const pdfStyles = StyleSheet.create({
   },
   title: {
     textAlign: "center",
-    fontSize: 18,
-    marginTop: 8,
-    marginBottom: 10,
+    fontSize: 17,
+    marginTop: 6,
+    marginBottom: 8,
     fontFamily: "Times-Bold",
   },
   intro: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: pdfColors.secondary,
-    marginBottom: 14,
+    marginBottom: 10,
     textAlign: "justify",
   },
   sectionHeader: {
     backgroundColor: pdfColors.sectionBg,
     borderLeftWidth: 4,
     borderLeftColor: pdfColors.blue,
-    paddingVertical: 6,
+    paddingVertical: 5,
     paddingHorizontal: 8,
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 9,
+    marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontFamily: "Times-Bold",
     color: "#2563EB",
   },
   paragraph: {
-    marginBottom: 6,
+    marginBottom: 4.5,
     textAlign: "justify",
   },
   listItem: {
-    marginBottom: 3,
+    marginBottom: 2.5,
     paddingLeft: 10,
   },
   callout: {

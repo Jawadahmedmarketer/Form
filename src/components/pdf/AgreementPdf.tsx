@@ -168,11 +168,14 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
           </View>
         </View>
 
-        <View style={{ marginTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb", paddingTop: 8 }}>
-          <Text style={{ fontFamily: "Times-Bold", marginBottom: 4 }}>Electronic Signing Record</Text>
-          <Text>Electronically signed: {data.signedAtLabel}</Text>
-          <Text>IP Address: {data.maskedIp}</Text>
-          <Text>Document fingerprint (SHA-256): {data.fingerprint}</Text>
+        <View wrap={false} style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: "#e5e7eb", paddingTop: 5 }}>
+          <Text style={{ fontFamily: "Times-Bold", marginBottom: 2, fontSize: 8.5 }}>Electronic Signing Record</Text>
+          <Text style={{ fontSize: 7.5, color: "#334155", marginBottom: 1 }}>
+            Electronically signed: {data.signedAtLabel} · IP Address: {data.maskedIp}
+          </Text>
+          <Text style={{ fontSize: 7.5, color: "#475569" }}>
+            Document fingerprint (SHA-256): {data.fingerprint}
+          </Text>
         </View>
 
         <View style={pdfStyles.footer} fixed>
