@@ -70,6 +70,8 @@ export function extractGhlContactId(payload: unknown): string | null {
   );
 }
 
+export const extractContactId = extractGhlContactId;
+
 export function ghlContactIdFromPayload(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const data = payload as { id?: string; contactId?: string; contact?: { id?: string } };
