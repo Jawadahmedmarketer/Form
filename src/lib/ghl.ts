@@ -4,7 +4,7 @@ import {
   GHL_AGREEMENT_STATUS_SIGNED,
   GHL_AGREEMENT_TYPE_VALUE,
   getGhlFieldMapping,
-} from "@/config/ghl-fields";
+import { formatBusinesses, type BusinessItem } from "@/lib/business-builder";
 import { formatSelectedServices } from "@/config/services";
 import { getAppUrl } from "@/lib/agreement";
 import { logError, logInfo, logWarn } from "@/lib/logger";
@@ -124,8 +124,10 @@ function matchRepresentativeField(name: string, kind: "name" | "title" | "date")
   return normalized.includes("representative name") && !normalized.includes("title");
 }
 
+let cachedGhlCustomFieldDefs: GhlCustomFieldDef[] = [];
+
 async function ensureRepresentativeFieldIds() {
-  if (resolvedRepresentativeFieldIds) return resolvedRepresentativeFieldIds;
+  if (resolvedRepresentativeFieldIds && cachedGhlCustomFieldDefs.length > 0) return resolvedRepresentativeFieldIds;
 
   const mapping = getGhlFieldMapping();
   resolvedRepresentativeFieldIds = {
@@ -133,14 +135,6 @@ async function ensureRepresentativeFieldIds() {
     title: mapping.representativeTitle,
     date: mapping.representativeDate,
   };
-
-  if (
-    resolvedRepresentativeFieldIds.name &&
-    resolvedRepresentativeFieldIds.title &&
-    resolvedRepresentativeFieldIds.date
-  ) {
-    return resolvedRepresentativeFieldIds;
-  }
 
   const { token, locationId } = getGhlConfig();
   if (!token || !locationId) return resolvedRepresentativeFieldIds;
@@ -150,6 +144,7 @@ async function ensureRepresentativeFieldIds() {
       method: "GET",
     })) as { customFields?: GhlCustomFieldDef[]; fields?: GhlCustomFieldDef[] };
     const defs = payload.customFields || payload.fields || [];
+    cachedGhlCustomFieldDefs = defs;
     for (const def of defs) {
       const label = `${def.name || ""} ${def.fieldKey || ""}`;
       if (!def.id) continue;
@@ -205,11 +200,54 @@ export async function getGhlRepresentativeDetails(
       customFields?: GhlContactCustomField[];
     };
     const fields = payload.contact?.customFields || payload.customFields || [];
+
+    let businessesCovered = valueForFieldId(fields, ids.businessesCovered);
+
+    // If single field is empty, check for individual numbered fields (Business 1 Name, Business 1 Software, Business 2 Name, etc.)
+    if (!businessesCovered.trim()) {
+      const items: BusinessItem[] = [];
+      for (let i = 1; i <= 10; i++) {
+        const nameDef = cachedGhlCustomFieldDefs.find((d) => {
+          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
+          return norm === `business ${i} name` || norm === `business ${i}` || norm === `business${i} name`;
+        });
+        const natureDef = cachedGhlCustomFieldDefs.find((d) => {
+          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
+          return norm.includes(`business ${i} nature`) || norm.includes(`business${i} nature`);
+        });
+        const softwareDef = cachedGhlCustomFieldDefs.find((d) => {
+          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
+          return norm.includes(`business ${i} software`) || norm.includes(`business${i} software`);
+        });
+        const basisDef = cachedGhlCustomFieldDefs.find((d) => {
+          const norm = normalizeFieldName(`${d.name || ""} ${d.fieldKey || ""}`);
+          return (
+            norm.includes(`business ${i} accounting basis`) ||
+            norm.includes(`business ${i} basis`) ||
+            norm.includes(`business${i} basis`)
+          );
+        });
+
+        const name = valueForFieldId(fields, nameDef?.id);
+        const nature = valueForFieldId(fields, natureDef?.id);
+        const software = valueForFieldId(fields, softwareDef?.id);
+        const accountingBasis = valueForFieldId(fields, basisDef?.id);
+
+        if (name || nature || software || accountingBasis) {
+          items.push({ name, nature, software, accountingBasis });
+        }
+      }
+
+      if (items.length > 0) {
+        businessesCovered = formatBusinesses(items);
+      }
+    }
+
     return {
       name: valueForFieldId(fields, ids.name),
       title: valueForFieldId(fields, ids.title),
       date: valueForFieldId(fields, ids.date),
-      businessesCovered: valueForFieldId(fields, ids.businessesCovered),
+      businessesCovered,
     };
   } catch (error) {
     logWarn("ghl.representative_lookup_failed", {

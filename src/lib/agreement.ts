@@ -1,6 +1,6 @@
 import { REPRESENTATIVE } from "@/config/company";
 import { normalizeSelectedServices } from "@/config/services";
-import { mergeFieldLocks, withServiceDescriptionLock } from "@/lib/field-locks";
+import { mergeFieldLocks, withPrefilledLocks, withServiceDescriptionLock } from "@/lib/field-locks";
 import { logError, logInfo } from "@/lib/logger";
 import { dataUrlToBuffer, generateSignatureFromName } from "@/lib/representative-signature";
 import { getSupabaseAdmin, PDF_BUCKET, SIGNATURE_BUCKET } from "@/lib/supabase/admin";
@@ -18,6 +18,9 @@ export function toPublicAgreement(
   representativeSignatureDataUrl: string | null,
 ): PublicAgreement {
   const locks = mergeFieldLocks(row.field_locks);
+  if (row.businesses_covered?.trim()) {
+    locks.businessesCovered = "locked";
+  }
   return {
     publicToken: row.public_token,
     status: row.status,
@@ -135,7 +138,10 @@ export async function createAgreement(input: CreateAgreementInput) {
       payment_method: emptyToNull(input.paymentMethod) || "Card / bank payment via secure payment link",
       representative_name: input.representativeName || REPRESENTATIVE.printedName,
       representative_title: input.representativeTitle || REPRESENTATIVE.title,
-      field_locks: withServiceDescriptionLock(input.fieldLocks, input.serviceDescription),
+      field_locks: withPrefilledLocks(input.fieldLocks, {
+        serviceDescription: input.serviceDescription,
+        businessesCovered: input.businessesCovered,
+      }),
       payment_url: emptyToNull(input.paymentUrl),
       expires_at: emptyToNull(input.expiresAt),
       sent_at: input.status === "sent" ? now : null,
@@ -214,7 +220,10 @@ export async function updateAgreementDraft(
       payment_url: emptyToNull(input.paymentUrl),
       representative_name: emptyToNull(input.representativeName) || REPRESENTATIVE.printedName,
       representative_title: emptyToNull(input.representativeTitle) || REPRESENTATIVE.title,
-      field_locks: withServiceDescriptionLock(existingLocks, input.serviceDescription),
+      field_locks: withPrefilledLocks(existingLocks, {
+        serviceDescription: input.serviceDescription,
+        businessesCovered: input.businessesCovered,
+      }),
     })
     .eq("id", id)
     .select("*")
