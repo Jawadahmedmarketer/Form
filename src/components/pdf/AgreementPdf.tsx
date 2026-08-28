@@ -85,7 +85,7 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
             <PdfField label="Business Address" value={data.businessAddress} />
             <PdfField label="Agreement Date" value={data.agreementDate} />
           </View>
-          <PdfField label="Businesses Covered" value={data.businessesCovered} />
+          <PdfLineField label="Businesses Covered" value={data.businessesCovered} />
         </PdfSection>
 
         <PdfSection number={2} title="UNIFIED TAX GROUP INFORMATION">
