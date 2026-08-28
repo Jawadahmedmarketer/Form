@@ -161,7 +161,13 @@ export async function POST(
   logInfo("agreement.submission_started", { agreementId: claimed.id });
 
   const values = parsed.data;
-  const selectedServices = normalizeSelectedServices(values.selectedServices);
+  const fromGhl = await getGhlRepresentativeDetails(claimed.ghl_contact_id);
+  const selectedServices =
+    normalizeSelectedServices(values.selectedServices).length > 0
+      ? normalizeSelectedServices(values.selectedServices)
+      : normalizeSelectedServices(claimed.selected_services).length > 0
+        ? normalizeSelectedServices(claimed.selected_services)
+        : fromGhl.selectedServices || [];
   const signedAt = new Date();
   const userAgent = await getUserAgent();
   const representativeDate = signedAt.toISOString().slice(0, 10);
@@ -207,7 +213,6 @@ export async function POST(
       signedAt: signedAt.toISOString(),
     });
 
-    const fromGhl = await getGhlRepresentativeDetails(claimed.ghl_contact_id);
     const representativeName =
       fromGhl.name || claimed.representative_name || REPRESENTATIVE.printedName;
     const representativeTitle =

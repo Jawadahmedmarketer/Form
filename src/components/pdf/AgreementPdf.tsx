@@ -103,10 +103,10 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
               const checked = normalizeSelectedServices(data.selectedServices).includes(service.id);
               return (
                 <View key={service.id} style={pdfStyles.checkboxItem}>
-                  <View style={pdfStyles.box}>
-                    <Text style={pdfStyles.checked}>{checked ? "X" : " "}</Text>
+                  <View style={{ ...pdfStyles.box, backgroundColor: checked ? "#f1f5f9" : "transparent" }}>
+                    <Text style={pdfStyles.checked}>{checked ? "X" : ""}</Text>
                   </View>
-                  <Text>{service.label}</Text>
+                  <Text style={{ fontFamily: checked ? "Times-Bold" : "Times-Roman" }}>{service.label}</Text>
                 </View>
               );
             })}

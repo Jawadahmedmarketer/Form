@@ -112,8 +112,8 @@ export const pdfStyles = StyleSheet.create({
     marginBottom: 4,
   },
   box: {
-    width: 9,
-    height: 9,
+    width: 10,
+    height: 10,
     borderWidth: 1,
     borderColor: "#334155",
     marginRight: 6,
@@ -121,8 +121,10 @@ export const pdfStyles = StyleSheet.create({
     justifyContent: "center",
   },
   checked: {
-    fontSize: 8,
-    fontFamily: "Times-Bold",
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    lineHeight: 1,
+    textAlign: "center",
   },
   footer: {
     position: "absolute",
