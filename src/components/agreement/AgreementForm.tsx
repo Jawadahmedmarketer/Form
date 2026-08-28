@@ -12,6 +12,7 @@ import {
 } from "@/config/agreement-content";
 import { AgreementHeader } from "@/components/agreement/AgreementHeader";
 import { AgreementSection } from "@/components/agreement/AgreementSection";
+import { BusinessCoveredBuilder } from "@/components/admin/BusinessCoveredBuilder";
 import { ClientAcceptance } from "@/components/agreement/ClientAcceptance";
 import { CompanyAcceptance } from "@/components/agreement/CompanyAcceptance";
 import { FeeFields } from "@/components/agreement/FeeFields";
@@ -171,9 +172,15 @@ export function AgreementForm({ agreement }: { agreement: PublicAgreement }) {
           </FormField>
         </div>
         <div className="mt-4">
-          <FormField label="Businesses Covered">
-            <TextArea readOnly={isLocked(agreement.fieldLocks.businessesCovered)} {...register("businessesCovered")} />
-          </FormField>
+          <label className="mb-2 block text-sm font-medium text-[#111827]">
+            Businesses Covered
+          </label>
+          <BusinessCoveredBuilder
+            value={watch("businessesCovered")}
+            onChange={(val) => setValue("businessesCovered", val, { shouldValidate: true })}
+            readOnly={isLocked(agreement.fieldLocks.businessesCovered)}
+            error={errors.businessesCovered?.message}
+          />
         </div>
       </AgreementSection>
 

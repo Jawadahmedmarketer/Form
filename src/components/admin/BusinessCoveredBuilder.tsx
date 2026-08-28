@@ -13,10 +13,12 @@ export function BusinessCoveredBuilder({
   value,
   onChange,
   error,
+  readOnly = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  readOnly?: boolean;
 }) {
   const [items, setItems] = useState<BusinessItem[]>(() => parseBusinesses(value));
 
@@ -71,7 +73,7 @@ export function BusinessCoveredBuilder({
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Business {index + 1}
               </span>
-              {items.length > 1 ? (
+              {!readOnly && items.length > 1 ? (
                 <button
                   type="button"
                   onClick={() => removeItem(index)}
@@ -93,9 +95,10 @@ export function BusinessCoveredBuilder({
                 <input
                   type="text"
                   value={item.name}
+                  disabled={readOnly}
                   onChange={(e) => updateItem(index, "name", e.target.value)}
                   placeholder="Acme LLC"
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 disabled:bg-slate-100 disabled:text-slate-700"
                 />
               </div>
 
@@ -107,9 +110,10 @@ export function BusinessCoveredBuilder({
                   <input
                     type="text"
                     value={item.nature}
+                    disabled={readOnly}
                     onChange={(e) => updateItem(index, "nature", e.target.value)}
                     placeholder="e.g. Retail"
-                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 disabled:bg-slate-100 disabled:text-slate-700"
                   />
                 </div>
 
@@ -120,9 +124,10 @@ export function BusinessCoveredBuilder({
                   <input
                     type="text"
                     value={item.software}
+                    disabled={readOnly}
                     onChange={(e) => updateItem(index, "software", e.target.value)}
                     placeholder="e.g. QuickBooks - None"
-                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 disabled:bg-slate-100 disabled:text-slate-700"
                   />
                 </div>
 
@@ -132,8 +137,9 @@ export function BusinessCoveredBuilder({
                   </label>
                   <select
                     value={item.accountingBasis || "Select..."}
+                    disabled={readOnly}
                     onChange={(e) => updateItem(index, "accountingBasis", e.target.value)}
-                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 disabled:bg-slate-100 disabled:text-slate-700"
                   >
                     {ACCOUNTING_BASIS_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
@@ -148,16 +154,18 @@ export function BusinessCoveredBuilder({
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={addItem}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-      >
-        <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        Add business
-      </button>
+      {!readOnly ? (
+        <button
+          type="button"
+          onClick={addItem}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+        >
+          <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add business
+        </button>
+      ) : null}
 
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
     </div>
