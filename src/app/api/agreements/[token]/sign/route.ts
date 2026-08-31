@@ -35,10 +35,13 @@ function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
-async function resolveRepresentativeSignature(claimed: {
-  id: string;
-  representative_signature_path: string | null;
-}): Promise<{ dataUrl: string | null; path: string | null }> {
+async function resolveRepresentativeSignature(
+  claimed: {
+    id: string;
+    representative_signature_path: string | null;
+  },
+  representativeName?: string,
+): Promise<{ dataUrl: string | null; path: string | null }> {
   // Prefer the signature that was already generated for THIS agreement
   // (from a custom representative name or hand-drawn signature at
   // creation/edit time). Only fall back to the static company-wide
@@ -54,7 +57,7 @@ async function resolveRepresentativeSignature(claimed: {
     }
   }
 
-  const dataUrl = await getAuthorizedSignatureDataUrl();
+  const dataUrl = await getAuthorizedSignatureDataUrl(representativeName);
   if (!dataUrl) {
     return { dataUrl: null, path: null };
   }
@@ -172,12 +175,17 @@ export async function POST(
   const userAgent = await getUserAgent();
   const representativeDate = signedAt.toISOString().slice(0, 10);
 
+  const representativeName =
+    fromGhl.name || claimed.representative_name || REPRESENTATIVE.printedName;
+  const representativeTitle =
+    fromGhl.title || claimed.representative_title || REPRESENTATIVE.title;
+
   try {
     const clientSignature = dataUrlToBuffer(values.clientSignature);
 
     const [clientSignaturePath, representativeSignatureResult] = await Promise.all([
       uploadSignature(claimed.id, "client", clientSignature.buffer),
-      resolveRepresentativeSignature(claimed),
+      resolveRepresentativeSignature(claimed, representativeName),
     ]);
 
     const { dataUrl: representativeDataUrl, path: representativeSignaturePath } =
@@ -212,11 +220,6 @@ export async function POST(
         : null,
       signedAt: signedAt.toISOString(),
     });
-
-    const representativeName =
-      fromGhl.name || claimed.representative_name || REPRESENTATIVE.printedName;
-    const representativeTitle =
-      fromGhl.title || claimed.representative_title || REPRESENTATIVE.title;
 
     const pdf = await generateAgreementPdf({
       firstName: values.firstName,

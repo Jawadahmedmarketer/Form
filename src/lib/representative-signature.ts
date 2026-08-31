@@ -54,21 +54,27 @@ export function generateSignatureFromName(name: string): Buffer {
   return buffer;
 }
 
-export async function getAuthorizedSignatureDataUrl() {
+export async function getAuthorizedSignatureDataUrl(nameOverride?: string) {
   if (REPRESENTATIVE.signatureMode !== "pre_authorized") return null;
 
-  const filePath = path.join(
-    process.cwd(),
-    "src",
-    "assets",
-    REPRESENTATIVE.signatureFileName,
-  );
-
+  const targetName = nameOverride || REPRESENTATIVE.printedName;
   try {
-    const bytes = await readFile(filePath);
-    return `data:image/png;base64,${bytes.toString("base64")}`;
+    const buffer = generateSignatureFromName(targetName);
+    return `data:image/png;base64,${buffer.toString("base64")}`;
   } catch {
-    return null;
+    const filePath = path.join(
+      process.cwd(),
+      "src",
+      "assets",
+      REPRESENTATIVE.signatureFileName,
+    );
+
+    try {
+      const bytes = await readFile(filePath);
+      return `data:image/png;base64,${bytes.toString("base64")}`;
+    } catch {
+      return null;
+    }
   }
 }
 

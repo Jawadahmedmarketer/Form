@@ -78,7 +78,7 @@ export default async function AgreementPage({
   const representativeSignatureDataUrl =
     (viewed.representative_signature_path
       ? await downloadStorageDataUrl(SIGNATURE_BUCKET, viewed.representative_signature_path, "image/png")
-      : null) ?? (await getAuthorizedSignatureDataUrl());
+      : null) ?? (await getAuthorizedSignatureDataUrl(viewed.representative_name || undefined));
   const agreement = toPublicAgreement(viewed, representativeSignatureDataUrl);
 
   return (
