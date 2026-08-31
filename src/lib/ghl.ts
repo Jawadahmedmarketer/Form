@@ -86,6 +86,8 @@ export type GhlRepresentativeDetails = {
   date: string;
   businessesCovered?: string;
   selectedServices?: string[];
+  businessName?: string;
+  businessAddress?: string;
 };
 
 type GhlCustomFieldDef = {
@@ -286,12 +288,45 @@ export async function getGhlRepresentativeDetails(
     const rawServices = valueForFieldId(fields, ids.selectedServices);
     const selectedServices = rawServices ? normalizeSelectedServices(rawServices) : [];
 
+    const contactObj = (payload.contact || payload || {}) as Record<string, unknown>;
+    const companyName = String(
+      contactObj.companyName ||
+      contactObj.company_name ||
+      contactObj.businessName ||
+      contactObj.business_name ||
+      ""
+    ).trim();
+
+    const addressParts = [
+      contactObj.address1 || contactObj.streetAddress,
+      contactObj.city,
+      contactObj.state,
+      contactObj.postalCode || contactObj.zip,
+      contactObj.country,
+    ]
+      .map((s) => String(s || "").trim())
+      .filter(Boolean);
+    const businessAddress = addressParts.join(", ");
+
+    if (!businessesCovered.trim() && companyName) {
+      businessesCovered = formatBusinesses([
+        {
+          name: companyName,
+          nature: "",
+          software: "",
+          accountingBasis: "",
+        },
+      ]);
+    }
+
     return {
       name: valueForFieldId(fields, ids.name),
       title: valueForFieldId(fields, ids.title),
       date: valueForFieldId(fields, ids.date),
       businessesCovered,
       selectedServices,
+      businessName: companyName,
+      businessAddress,
     };
   } catch (error) {
     logWarn("ghl.representative_lookup_failed", {

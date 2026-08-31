@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
       if ((!input.selectedServices || input.selectedServices.length === 0) && fromGhl.selectedServices?.length) {
         input.selectedServices = fromGhl.selectedServices;
       }
+      if (!input.businessName && fromGhl.businessName) input.businessName = fromGhl.businessName;
+      if (!input.businessAddress && fromGhl.businessAddress) input.businessAddress = fromGhl.businessAddress;
     }
 
     const row = await createAgreement(input);
