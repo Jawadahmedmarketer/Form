@@ -221,6 +221,18 @@ export async function POST(
       signedAt: signedAt.toISOString(),
     });
 
+    const paymentSchedule =
+      values.paymentSchedule?.trim() ||
+      claimed.payment_schedule?.trim() ||
+      fromGhl.paymentSchedule?.trim() ||
+      "Setup due on signing; monthly thereafter";
+
+    const paymentMethod =
+      values.paymentMethod?.trim() ||
+      claimed.payment_method?.trim() ||
+      fromGhl.paymentMethod?.trim() ||
+      "Card / bank payment via secure payment link";
+
     const pdf = await generateAgreementPdf({
       firstName: values.firstName,
       lastName: values.lastName,
@@ -238,8 +250,8 @@ export async function POST(
       serviceEndDate: values.serviceEndDate,
       setupFee: values.setupFee,
       monthlyFee: values.monthlyFee,
-      paymentSchedule: values.paymentSchedule,
-      paymentMethod: values.paymentMethod,
+      paymentSchedule,
+      paymentMethod,
       clientPrintedName: values.clientPrintedName,
       clientTitle: values.clientTitle,
       clientSignedDate: formatLongDate(values.clientSignedDate) || values.clientSignedDate,
@@ -267,7 +279,10 @@ export async function POST(
     let paymentUrl = claimed.payment_url;
     if (claimed.ghl_contact_id && !paymentUrl) {
       const invoice = await createAgreementInvoice(
-        invoiceParamsFor(claimed.ghl_contact_id, values),
+        invoiceParamsFor(claimed.ghl_contact_id, {
+          ...values,
+          selectedServices,
+        }),
       );
       if (invoice) paymentUrl = invoice.paymentUrl;
     }
@@ -292,8 +307,8 @@ export async function POST(
       monthly_fee: values.monthlyFee || null,
       setup_fee_label: values.setupFeeLabel || claimed.setup_fee_label || null,
       monthly_fee_label: values.monthlyFeeLabel || claimed.monthly_fee_label || null,
-      payment_schedule: values.paymentSchedule || null,
-      payment_method: values.paymentMethod || null,
+      payment_schedule: paymentSchedule,
+      payment_method: paymentMethod,
       payment_url: paymentUrl,
       client_printed_name: values.clientPrintedName,
       client_title: values.clientTitle || null,

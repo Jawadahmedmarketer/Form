@@ -1,5 +1,6 @@
 import { REPRESENTATIVE } from "@/config/company";
 import { normalizeSelectedServices } from "@/config/services";
+import { formatTaxPeriod } from "@/lib/dates";
 import { mergeFieldLocks, withPrefilledLocks, withServiceDescriptionLock } from "@/lib/field-locks";
 import { logError, logInfo } from "@/lib/logger";
 import { dataUrlToBuffer, generateSignatureFromName } from "@/lib/representative-signature";
@@ -21,6 +22,9 @@ export function toPublicAgreement(
   if (row.businesses_covered?.trim()) {
     locks.businessesCovered = "locked";
   }
+  locks.taxPeriod = "locked";
+  locks.selectedServices = "locked";
+
   return {
     publicToken: row.public_token,
     status: row.status,
@@ -30,7 +34,7 @@ export function toPublicAgreement(
     email: row.email ?? "",
     phone: row.phone ?? "",
     businessAddress: row.business_address ?? "",
-    taxPeriod: row.tax_period ?? "",
+    taxPeriod: formatTaxPeriod(row.tax_period) || row.tax_period || "",
     agreementDate: row.agreement_date ?? "",
     businessesCovered: row.businesses_covered ?? "",
     selectedServices: normalizeSelectedServices(row.selected_services),
@@ -42,8 +46,8 @@ export function toPublicAgreement(
     monthlyFee: row.monthly_fee ?? "",
     setupFeeLabel: row.setup_fee_label ?? "",
     monthlyFeeLabel: row.monthly_fee_label ?? "",
-    paymentSchedule: row.payment_schedule ?? "",
-    paymentMethod: row.payment_method ?? "",
+    paymentSchedule: row.payment_schedule || "Setup due on signing; monthly thereafter",
+    paymentMethod: row.payment_method || "Card / bank payment via secure payment link",
     fieldLocks: locks,
     representativeName: row.representative_name || REPRESENTATIVE.printedName,
     representativeTitle: row.representative_title || REPRESENTATIVE.title,

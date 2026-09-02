@@ -72,7 +72,18 @@ export function BusinessCoveredBuilder({
       </div>
 
       <div className="space-y-3">
-        {items.map((item, index) => (
+        {items
+          .filter((item, index) => {
+            if (!readOnly) return true;
+            if (index === 0) return true;
+            return Boolean(
+              item.name.trim() ||
+              item.nature.trim() ||
+              item.software.trim() ||
+              (item.accountingBasis.trim() && item.accountingBasis !== "Select..."),
+            );
+          })
+          .map((item, index) => (
           <div
             key={index}
             className="relative rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-slate-300"

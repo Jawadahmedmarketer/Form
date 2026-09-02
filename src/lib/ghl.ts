@@ -8,6 +8,7 @@ import {
 import { formatBusinesses, type BusinessItem } from "@/lib/business-builder";
 import { formatSelectedServices, normalizeSelectedServices } from "@/config/services";
 import { getAppUrl } from "@/lib/agreement";
+import { formatTaxPeriod } from "@/lib/dates";
 import { logError, logInfo, logWarn } from "@/lib/logger";
 import type { AgreementRow } from "@/lib/supabase/types";
 
@@ -88,6 +89,14 @@ export type GhlRepresentativeDetails = {
   selectedServices?: string[];
   businessName?: string;
   businessAddress?: string;
+  taxPeriod?: string;
+  monthlyFee?: string;
+  setupFee?: string;
+  paymentSchedule?: string;
+  paymentMethod?: string;
+  serviceStartDate?: string;
+  serviceEndDate?: string;
+  serviceDescription?: string;
 };
 
 type GhlCustomFieldDef = {
@@ -109,6 +118,14 @@ let resolvedRepresentativeFieldIds: {
   businessesCovered?: string;
   selectedServices?: string;
   agreementLink?: string;
+  monthlyFee?: string;
+  setupFee?: string;
+  paymentSchedule?: string;
+  paymentMethod?: string;
+  serviceStartDate?: string;
+  serviceEndDate?: string;
+  serviceDescription?: string;
+  taxPeriod?: string;
 } | null = null;
 
 function normalizeFieldName(value: string) {
@@ -198,6 +215,70 @@ async function ensureRepresentativeFieldIds() {
       ) {
         resolvedRepresentativeFieldIds.agreementLink = def.id;
       }
+      if (
+        !resolvedRepresentativeFieldIds.monthlyFee &&
+        (normalizeFieldName(def.name || "").includes("monthly fee") ||
+          normalizeFieldName(def.name || "").includes("monthly amount") ||
+          normalizeFieldName(label).includes("monthly_fee"))
+      ) {
+        resolvedRepresentativeFieldIds.monthlyFee = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.setupFee &&
+        (normalizeFieldName(def.name || "").includes("total cost") ||
+          normalizeFieldName(def.name || "").includes("setup fee") ||
+          normalizeFieldName(label).includes("setup_fee"))
+      ) {
+        resolvedRepresentativeFieldIds.setupFee = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.paymentSchedule &&
+        (normalizeFieldName(def.name || "").includes("payment schedule") ||
+          normalizeFieldName(label).includes("payment_schedule"))
+      ) {
+        resolvedRepresentativeFieldIds.paymentSchedule = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.paymentMethod &&
+        (normalizeFieldName(def.name || "").includes("payment method") ||
+          normalizeFieldName(label).includes("payment_method"))
+      ) {
+        resolvedRepresentativeFieldIds.paymentMethod = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.serviceStartDate &&
+        (normalizeFieldName(def.name || "").includes("service start date") ||
+          normalizeFieldName(label).includes("service_start_date") ||
+          normalizeFieldName(def.name || "") === "start date")
+      ) {
+        resolvedRepresentativeFieldIds.serviceStartDate = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.serviceEndDate &&
+        (normalizeFieldName(def.name || "").includes("service end date") ||
+          normalizeFieldName(label).includes("service_end_date") ||
+          normalizeFieldName(def.name || "") === "end date")
+      ) {
+        resolvedRepresentativeFieldIds.serviceEndDate = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.serviceDescription &&
+        (normalizeFieldName(def.name || "").includes("service description") ||
+          normalizeFieldName(def.name || "").includes("description notes") ||
+          normalizeFieldName(def.name || "").includes("service notes") ||
+          normalizeFieldName(label).includes("service_description"))
+      ) {
+        resolvedRepresentativeFieldIds.serviceDescription = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.taxPeriod &&
+        (normalizeFieldName(def.name || "").includes("tax year") ||
+          normalizeFieldName(def.name || "").includes("period covered") ||
+          normalizeFieldName(label).includes("tax_period") ||
+          normalizeFieldName(def.name || "").includes("tax period"))
+      ) {
+        resolvedRepresentativeFieldIds.taxPeriod = def.id;
+      }
     }
   } catch (error) {
     logWarn("ghl.custom_fields_lookup_failed", {
@@ -252,8 +333,18 @@ export async function getGhlRepresentativeDetails(
         const natureDef = cachedGhlCustomFieldDefs.find((d) => {
           const n = normalizeFieldName(d.name || "");
           const k = normalizeFieldName(d.fieldKey || "");
+          if (i === 1) {
+            return (
+              (n.includes("nature") && (n.includes("business") || n.includes("1"))) ||
+              n === "nature of business" ||
+              k.includes("nature_of_business") ||
+              k.includes("business_1_nature") ||
+              k.includes("business1_nature")
+            );
+          }
           return (
             (n.includes(`business ${i}`) && n.includes("nature")) ||
+            (n.includes("nature") && n.includes(String(i))) ||
             k.includes(`business_${i}_nature`) ||
             k.includes(`business${i}_nature`)
           );
@@ -262,8 +353,19 @@ export async function getGhlRepresentativeDetails(
         const softwareDef = cachedGhlCustomFieldDefs.find((d) => {
           const n = normalizeFieldName(d.name || "");
           const k = normalizeFieldName(d.fieldKey || "");
+          if (i === 1) {
+            return (
+              (n.includes("software") && (n.includes("used") || n.includes("accounting") || n.includes("1"))) ||
+              n === "software used" ||
+              n === "accounting software" ||
+              k.includes("software_used") ||
+              k.includes("business_1_software") ||
+              k.includes("business1_software")
+            );
+          }
           return (
             (n.includes(`business ${i}`) && n.includes("software")) ||
+            (n.includes("software") && n.includes(String(i))) ||
             k.includes(`business_${i}_software`) ||
             k.includes(`business${i}_software`)
           );
@@ -272,8 +374,18 @@ export async function getGhlRepresentativeDetails(
         const basisDef = cachedGhlCustomFieldDefs.find((d) => {
           const n = normalizeFieldName(d.name || "");
           const k = normalizeFieldName(d.fieldKey || "");
+          if (i === 1) {
+            return (
+              (n.includes("accounting basis") || n.includes("accounting method") || (n.includes("basis") && n.includes("1"))) ||
+              n === "accounting basis" ||
+              k.includes("accounting_basis") ||
+              k.includes("business_1_basis") ||
+              k.includes("business1_basis")
+            );
+          }
           return (
             (n.includes(`business ${i}`) && (n.includes("basis") || n.includes("accounting"))) ||
+            (n.includes("basis") && n.includes(String(i))) ||
             k.includes(`business_${i}_basis`) ||
             k.includes(`business_${i}_accounting_basis`) ||
             k.includes(`business${i}_basis`)
@@ -329,6 +441,9 @@ export async function getGhlRepresentativeDetails(
       ]);
     }
 
+    const rawTaxPeriod = valueForFieldId(fields, ids.taxPeriod);
+    const taxPeriod = formatTaxPeriod(rawTaxPeriod);
+
     return {
       name: valueForFieldId(fields, ids.name),
       title: valueForFieldId(fields, ids.title),
@@ -337,6 +452,14 @@ export async function getGhlRepresentativeDetails(
       selectedServices,
       businessName: companyName,
       businessAddress,
+      taxPeriod,
+      monthlyFee: valueForFieldId(fields, ids.monthlyFee),
+      setupFee: valueForFieldId(fields, ids.setupFee),
+      paymentSchedule: valueForFieldId(fields, ids.paymentSchedule),
+      paymentMethod: valueForFieldId(fields, ids.paymentMethod),
+      serviceStartDate: valueForFieldId(fields, ids.serviceStartDate),
+      serviceEndDate: valueForFieldId(fields, ids.serviceEndDate),
+      serviceDescription: valueForFieldId(fields, ids.serviceDescription),
     };
   } catch (error) {
     logWarn("ghl.representative_lookup_failed", {
