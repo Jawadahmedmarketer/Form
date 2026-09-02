@@ -108,6 +108,7 @@ let resolvedRepresentativeFieldIds: {
   date?: string;
   businessesCovered?: string;
   selectedServices?: string;
+  agreementLink?: string;
 } | null = null;
 
 function normalizeFieldName(value: string) {
@@ -187,6 +188,15 @@ async function ensureRepresentativeFieldIds() {
           normalizeFieldName(def.name || "") === "services")
       ) {
         resolvedRepresentativeFieldIds.selectedServices = def.id;
+      }
+      if (
+        !resolvedRepresentativeFieldIds.agreementLink &&
+        (normalizeFieldName(label).includes("agreement signing link") ||
+          normalizeFieldName(label).includes("agreement_signing_link") ||
+          normalizeFieldName(label).includes("agreement link") ||
+          normalizeFieldName(label).includes("signing link"))
+      ) {
+        resolvedRepresentativeFieldIds.agreementLink = def.id;
       }
     }
   } catch (error) {
@@ -358,7 +368,7 @@ function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
     [mapping.setupFee, row.setup_fee || ""],
     [mapping.monthlyFee, row.monthly_fee || ""],
     [
-      mapping.agreementLink,
+      mapping.agreementLink || resolved?.agreementLink,
       row.public_token ? `${getAppUrl()}/agreement/${row.public_token}` : "",
     ],
     [mapping.representativeName || resolved?.name, row.representative_name || ""],

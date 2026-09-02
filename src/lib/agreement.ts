@@ -490,5 +490,9 @@ export function buildPdfFilename(firstName: string, lastName: string, signedAt: 
 }
 
 export function getAppUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    "https://agreements.unifiedtaxgroup.com"
+  ).replace(/\/$/, "");
 }
