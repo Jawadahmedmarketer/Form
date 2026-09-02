@@ -289,10 +289,63 @@ async function ensureRepresentativeFieldIds() {
   return resolvedRepresentativeFieldIds;
 }
 
-function valueForFieldId(fields: GhlContactCustomField[], fieldId: string | undefined): string {
-  if (!fieldId) return "";
-  const match = fields.find((field) => field.id === fieldId);
-  return stringifyFieldValue(match?.value ?? match?.field_value);
+function formatFeeDisplay(val: string): string {
+  if (!val) return "";
+  const trimmed = val.trim();
+  if (!trimmed) return "";
+  if (/^\d+(\.\d{1,2})?$/.test(trimmed)) {
+    return `$${trimmed}`;
+  }
+  return trimmed;
+}
+
+function valueForFieldId(
+  fields: GhlContactCustomField[],
+  fieldId: string | undefined,
+  keywords?: string[],
+): string {
+  if (fieldId) {
+    const match = fields.find(
+      (field) =>
+        field.id === fieldId ||
+        (field as Record<string, unknown>).fieldId === fieldId ||
+        (field as Record<string, unknown>).customFieldId === fieldId,
+    );
+    const val = stringifyFieldValue(match?.value ?? match?.field_value);
+    if (val) return val;
+  }
+
+  if (keywords && keywords.length > 0) {
+    if (cachedGhlCustomFieldDefs.length > 0) {
+      const matchingDefs = cachedGhlCustomFieldDefs.filter((d) => {
+        const n = normalizeFieldName(d.name || "");
+        const k = normalizeFieldName(d.fieldKey || "");
+        return keywords.some((kw) => n.includes(kw) || k.includes(kw));
+      });
+      for (const def of matchingDefs) {
+        if (!def.id) continue;
+        const match = fields.find(
+          (field) =>
+            field.id === def.id ||
+            (field as Record<string, unknown>).fieldId === def.id ||
+            (field as Record<string, unknown>).customFieldId === def.id,
+        );
+        const val = stringifyFieldValue(match?.value ?? match?.field_value);
+        if (val) return val;
+      }
+    }
+
+    for (const field of fields) {
+      const raw = field as Record<string, unknown>;
+      const name = normalizeFieldName(String(raw.name || raw.fieldKey || raw.key || raw.field_key || ""));
+      if (name && keywords.some((kw) => name.includes(kw))) {
+        const val = stringifyFieldValue(raw.value ?? raw.field_value);
+        if (val) return val;
+      }
+    }
+  }
+
+  return "";
 }
 
 export async function getGhlRepresentativeDetails(
@@ -309,12 +362,25 @@ export async function getGhlRepresentativeDetails(
     const payload = (await ghlFetch(`/contacts/${contactId}`, token, {
       method: "GET",
     })) as {
-      contact?: { customFields?: GhlContactCustomField[] };
+      contact?: { customFields?: GhlContactCustomField[]; companyName?: string; company_name?: string };
       customFields?: GhlContactCustomField[];
     };
     const fields = payload.contact?.customFields || payload.customFields || [];
 
-    let businessesCovered = valueForFieldId(fields, ids.businessesCovered);
+    const contactObj = (payload.contact || payload || {}) as Record<string, unknown>;
+    const companyName = String(
+      contactObj.companyName ||
+      contactObj.company_name ||
+      contactObj.businessName ||
+      contactObj.business_name ||
+      ""
+    ).trim();
+
+    let businessesCovered = valueForFieldId(fields, ids.businessesCovered, [
+      "businesses covered",
+      "business covered",
+      "businesses serviced",
+    ]);
 
     // If single field is empty, check for individual numbered fields (Business 1 Name, Business 1 Software, Business 2 Name, etc.)
     if (!businessesCovered.trim()) {
@@ -358,7 +424,9 @@ export async function getGhlRepresentativeDetails(
               (n.includes("software") && (n.includes("used") || n.includes("accounting") || n.includes("1"))) ||
               n === "software used" ||
               n === "accounting software" ||
+              n === "software" ||
               k.includes("software_used") ||
+              k.includes("accounting_software") ||
               k.includes("business_1_software") ||
               k.includes("business1_software")
             );
@@ -392,13 +460,38 @@ export async function getGhlRepresentativeDetails(
           );
         });
 
-        const name = valueForFieldId(fields, nameDef?.id);
-        const nature = valueForFieldId(fields, natureDef?.id);
-        const software = valueForFieldId(fields, softwareDef?.id);
-        const accountingBasis = valueForFieldId(fields, basisDef?.id);
+        const name = valueForFieldId(
+          fields,
+          nameDef?.id,
+          i === 1
+            ? [`business 1 name`, `business 1`, `business_1_name`, `company name`]
+            : [`business ${i} name`, `business ${i}`, `business_${i}_name`],
+        );
+        const nature = valueForFieldId(
+          fields,
+          natureDef?.id,
+          i === 1
+            ? ["nature of business", "business nature", "business 1 nature", "nature_of_business", "nature", "industry"]
+            : [`business ${i} nature`, `nature of business ${i}`, `business_${i}_nature`],
+        );
+        const software = valueForFieldId(
+          fields,
+          softwareDef?.id,
+          i === 1
+            ? ["software used", "accounting software", "business 1 software", "software_used", "accounting_software", "software", "quickbooks"]
+            : [`business ${i} software`, `software used ${i}`, `business_${i}_software`],
+        );
+        const accountingBasis = valueForFieldId(
+          fields,
+          basisDef?.id,
+          i === 1
+            ? ["accounting basis", "accounting method", "business 1 basis", "accounting_basis", "basis"]
+            : [`business ${i} accounting basis`, `accounting basis ${i}`, `business_${i}_basis`],
+        );
 
-        if (name || nature || software || accountingBasis) {
-          items.push({ name, nature, software, accountingBasis });
+        const resolvedName = name || (i === 1 && (nature || software || accountingBasis) ? companyName : "");
+        if (resolvedName || nature || software || accountingBasis) {
+          items.push({ name: resolvedName, nature, software, accountingBasis });
         }
       }
 
@@ -407,17 +500,8 @@ export async function getGhlRepresentativeDetails(
       }
     }
 
-    const rawServices = valueForFieldId(fields, ids.selectedServices);
+    const rawServices = valueForFieldId(fields, ids.selectedServices, ["selected services", "services", "select"]);
     const selectedServices = rawServices ? normalizeSelectedServices(rawServices) : [];
-
-    const contactObj = (payload.contact || payload || {}) as Record<string, unknown>;
-    const companyName = String(
-      contactObj.companyName ||
-      contactObj.company_name ||
-      contactObj.businessName ||
-      contactObj.business_name ||
-      ""
-    ).trim();
 
     const addressParts = [
       contactObj.address1 || contactObj.streetAddress,
@@ -441,25 +525,53 @@ export async function getGhlRepresentativeDetails(
       ]);
     }
 
-    const rawTaxPeriod = valueForFieldId(fields, ids.taxPeriod);
+    const rawTaxPeriod = valueForFieldId(fields, ids.taxPeriod, [
+      "tax year",
+      "period covered",
+      "tax period",
+      "tax_period",
+      "tax_year",
+      "period_covered",
+      "tax years",
+      "tax year s",
+    ]);
     const taxPeriod = formatTaxPeriod(rawTaxPeriod);
 
+    const rawMonthlyFee = valueForFieldId(fields, ids.monthlyFee, [
+      "monthly fee",
+      "monthly amount",
+      "monthly retainer",
+      "monthly payment",
+      "monthly_fee",
+      "monthly",
+    ]);
+    const monthlyFee = formatFeeDisplay(rawMonthlyFee);
+
+    const rawSetupFee = valueForFieldId(fields, ids.setupFee, [
+      "total cost",
+      "setup fee",
+      "setup_fee",
+      "total fee",
+      "fee",
+    ]);
+    const setupFee = formatFeeDisplay(rawSetupFee);
+
     return {
-      name: valueForFieldId(fields, ids.name),
-      title: valueForFieldId(fields, ids.title),
-      date: valueForFieldId(fields, ids.date),
+      name: valueForFieldId(fields, ids.name, ["authorized representative", "representative name", "representative"]),
+      title: valueForFieldId(fields, ids.title, ["representative title", "title"]),
+      date: valueForFieldId(fields, ids.date, ["company authorization date", "representative date", "date"]),
       businessesCovered,
       selectedServices,
       businessName: companyName,
       businessAddress,
       taxPeriod,
-      monthlyFee: valueForFieldId(fields, ids.monthlyFee),
-      setupFee: valueForFieldId(fields, ids.setupFee),
-      paymentSchedule: valueForFieldId(fields, ids.paymentSchedule),
-      paymentMethod: valueForFieldId(fields, ids.paymentMethod),
-      serviceStartDate: valueForFieldId(fields, ids.serviceStartDate),
-      serviceEndDate: valueForFieldId(fields, ids.serviceEndDate),
-      serviceDescription: valueForFieldId(fields, ids.serviceDescription),
+      monthlyFee,
+      setupFee,
+      paymentSchedule: valueForFieldId(fields, ids.paymentSchedule, ["payment schedule", "payment_schedule"]),
+      paymentMethod: valueForFieldId(fields, ids.paymentMethod, ["payment method", "payment_method"]),
+      serviceStartDate: valueForFieldId(fields, ids.serviceStartDate, ["service start date", "start date", "service_start_date"]),
+      serviceEndDate: valueForFieldId(fields, ids.serviceEndDate, ["service end date", "end date", "service_end_date"]),
+      serviceDescription: valueForFieldId(fields, ids.serviceDescription, ["service description", "description notes", "service notes", "service_description"]),
     };
   } catch (error) {
     logWarn("ghl.representative_lookup_failed", {

@@ -58,6 +58,20 @@ export async function POST(request: NextRequest) {
       }
       if (!input.businessName && fromGhl.businessName) input.businessName = fromGhl.businessName;
       if (!input.businessAddress && fromGhl.businessAddress) input.businessAddress = fromGhl.businessAddress;
+      if (!input.taxPeriod && fromGhl.taxPeriod) input.taxPeriod = fromGhl.taxPeriod;
+      if (!input.monthlyFee && fromGhl.monthlyFee) input.monthlyFee = fromGhl.monthlyFee;
+      if (!input.setupFee && fromGhl.setupFee) input.setupFee = fromGhl.setupFee;
+      if (!input.serviceStartDate && fromGhl.serviceStartDate) input.serviceStartDate = fromGhl.serviceStartDate;
+      if ((!input.serviceEndDate || input.serviceEndDate === "Ongoing — no fixed end date") && fromGhl.serviceEndDate) {
+        input.serviceEndDate = fromGhl.serviceEndDate;
+      }
+      if (!input.serviceDescription && fromGhl.serviceDescription) input.serviceDescription = fromGhl.serviceDescription;
+      if ((!input.paymentSchedule || input.paymentSchedule === "Setup due on signing; monthly thereafter") && fromGhl.paymentSchedule) {
+        input.paymentSchedule = fromGhl.paymentSchedule;
+      }
+      if ((!input.paymentMethod || input.paymentMethod === "Card / bank payment via secure payment link") && fromGhl.paymentMethod) {
+        input.paymentMethod = fromGhl.paymentMethod;
+      }
     }
 
     const row = await createAgreement(input);
