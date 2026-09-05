@@ -57,7 +57,9 @@ export function generateSignatureFromName(name: string): Buffer {
 export async function getAuthorizedSignatureDataUrl(nameOverride?: string) {
   if (REPRESENTATIVE.signatureMode !== "pre_authorized") return null;
 
-  const targetName = nameOverride || REPRESENTATIVE.printedName;
+  const targetName = (nameOverride || REPRESENTATIVE.printedName || "").trim();
+  if (!targetName) return null;
+
   try {
     const buffer = generateSignatureFromName(targetName);
     return `data:image/png;base64,${buffer.toString("base64")}`;
