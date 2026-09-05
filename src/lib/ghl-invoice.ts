@@ -77,10 +77,19 @@ function invoiceNameFromSelectedServices(
   return labels.join(" + ");
 }
 
+function cleanNote(value?: string | null): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (/^(null|undefined|none|n\/a)$/i.test(trimmed)) return "";
+  return trimmed;
+}
+
 function buildSetupItemName(servicesPart?: string, descriptionPart?: string): string {
-  const services = servicesPart?.trim() || "";
-  const description = descriptionPart?.trim() || "";
-  if (services && description) return `${services} - ${description}`;
+  const services = cleanNote(servicesPart);
+  const description = cleanNote(descriptionPart);
+  if (services && description && services.toLowerCase() !== description.toLowerCase()) {
+    return `${services} - ${description}`;
+  }
   if (services) return services;
   if (description) return description;
   return "Setup Fee";
@@ -124,7 +133,7 @@ export async function createAgreementInvoice(
   }
   if (monthlyFee > 0) {
     items.push({
-      name: params.monthlyFeeLabel || "Monthly Fee (First Payment)",
+      name: cleanNote(params.monthlyFeeLabel) || "Monthly Fee (First Payment)",
       qty: 1,
       amount: monthlyFee,
       currency: "USD",
@@ -153,12 +162,16 @@ export async function createAgreementInvoice(
     Version: "2021-07-28",
   };
 
-  const notes = [
-    params.serviceDescription?.trim(),
-    params.setupFeeLabel?.trim(),
-  ]
-    .filter(Boolean)
-    .join(" — ");
+  const noteParts = [
+    cleanNote(params.serviceDescription),
+    cleanNote(params.setupFeeLabel),
+  ].filter(Boolean);
+
+  const uniqueNotes = noteParts.filter(
+    (item, index, self) =>
+      self.findIndex((other) => other.toLowerCase() === item.toLowerCase()) === index,
+  );
+  const notes = uniqueNotes.join(" — ");
 
   try {
     const createRes = await fetch("https://services.leadconnectorhq.com/invoices/", {
