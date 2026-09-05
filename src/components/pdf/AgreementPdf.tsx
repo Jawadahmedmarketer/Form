@@ -1,4 +1,4 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import {
   COMPANY_READONLY_FIELDS,
   LEGAL_SECTIONS,
@@ -64,6 +64,18 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
       subject="Service Agreement"
     >
       <Page size="LETTER" style={pdfStyles.page}>
+        {COMPANY.logoUrl ? (
+          <Image
+            src={COMPANY.logoUrl}
+            style={{
+              width: 140,
+              height: 38,
+              objectFit: "contain",
+              alignSelf: "center",
+              marginBottom: 6,
+            }}
+          />
+        ) : null}
         <Text style={pdfStyles.brand}>{COMPANY.brandName.toUpperCase()}</Text>
         <Text style={pdfStyles.title}>SERVICE AGREEMENT</Text>
         <Text style={pdfStyles.intro}>{AGREEMENT_INTRO}</Text>

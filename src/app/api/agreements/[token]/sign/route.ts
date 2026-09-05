@@ -97,6 +97,7 @@ function invoiceParamsFor(
     monthlyFee: values.monthlyFee,
     setupFeeLabel: values.setupFeeLabel || descriptionLabel || undefined,
     monthlyFeeLabel: values.monthlyFeeLabel || undefined,
+    serviceDescription: values.serviceDescription || undefined,
     selectedServices: values.selectedServices,
   };
 }

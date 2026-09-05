@@ -11,6 +11,7 @@ interface CreateInvoiceParams {
   monthlyFee?: string | null;
   setupFeeLabel?: string;
   monthlyFeeLabel?: string;
+  serviceDescription?: string | null;
   selectedServices?: string | string[] | null;
 }
 
@@ -152,7 +153,12 @@ export async function createAgreementInvoice(
     Version: "2021-07-28",
   };
 
-  const descriptionPart = params.setupFeeLabel?.trim() || "";
+  const notes = [
+    params.serviceDescription?.trim(),
+    params.setupFeeLabel?.trim(),
+  ]
+    .filter(Boolean)
+    .join(" — ");
 
   try {
     const createRes = await fetch("https://services.leadconnectorhq.com/invoices/", {
@@ -183,7 +189,7 @@ export async function createAgreementInvoice(
         amountDue: total,
         liveMode: true,
         automaticTaxesEnabled: false,
-        ...(descriptionPart ? { termsNotes: `<p>${descriptionPart}</p>` } : {}),
+        ...(notes ? { termsNotes: `<p>${notes}</p>` } : {}),
       }),
       signal: AbortSignal.timeout(25_000),
     });
