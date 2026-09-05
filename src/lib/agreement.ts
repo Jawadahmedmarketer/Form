@@ -41,7 +41,10 @@ export function toPublicAgreement(
     otherService: row.other_service ?? "",
     serviceDescription: row.service_description ?? "",
     serviceStartDate: row.service_start_date ?? "",
-    serviceEndDate: row.service_end_date ?? "",
+    serviceEndDate:
+      row.service_end_date && row.service_end_date !== "null" && row.service_end_date !== "undefined"
+        ? row.service_end_date
+        : "Ongoing — no fixed end date",
     setupFee: row.setup_fee ?? "",
     monthlyFee: row.monthly_fee ?? "",
     setupFeeLabel: row.setup_fee_label ?? "",

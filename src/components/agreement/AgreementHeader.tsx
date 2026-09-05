@@ -4,6 +4,16 @@ import { COMPANY } from "@/config/company";
 export function AgreementHeader() {
   return (
     <header className="border-b border-slate-200 pb-8 text-center">
+      {COMPANY.logoUrl ? (
+        <div className="mb-5 flex justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={COMPANY.logoUrl}
+            alt={COMPANY.brandName}
+            className="h-16 w-auto object-contain sm:h-20"
+          />
+        </div>
+      ) : null}
       <p className="text-[11px] font-semibold tracking-[0.28em] text-slate-800">
         {COMPANY.brandName.toUpperCase()}
       </p>

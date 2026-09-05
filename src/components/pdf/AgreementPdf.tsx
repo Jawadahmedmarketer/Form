@@ -116,8 +116,14 @@ export function AgreementPdf({ data }: { data: AgreementPdfData }) {
             <PdfField label="Service Start Date" value={data.serviceStartDate} />
           </View>
           <View style={pdfStyles.row}>
-            <PdfField label="Service Description / Notes" value={data.serviceDescription} />
-            <PdfField label="Service End Date" value={data.serviceEndDate} />
+            <PdfField
+              label="Service End Date"
+              value={
+                data.serviceEndDate && data.serviceEndDate !== "null" && data.serviceEndDate !== "undefined"
+                  ? data.serviceEndDate
+                  : "Ongoing — no fixed end date"
+              }
+            />
           </View>
         </PdfSection>
 
