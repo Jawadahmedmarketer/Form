@@ -153,15 +153,27 @@ function stringifyFieldValue(value: unknown): string {
 function matchRepresentativeField(name: string, kind: "name" | "title" | "date") {
   const normalized = normalizeFieldName(name);
   if (kind === "title") {
-    return normalized.includes("representative title");
+    return (
+      normalized.includes("representative title") ||
+      normalized.includes("rep title") ||
+      normalized === "title"
+    );
   }
   if (kind === "date") {
     return (
       normalized.includes("company authorization date") ||
-      normalized.includes("representative date")
+      normalized.includes("representative date") ||
+      normalized.includes("rep date")
     );
   }
-  return normalized.includes("representative name") && !normalized.includes("title");
+  return (
+    (normalized.includes("representative name") ||
+      normalized.includes("rep name") ||
+      normalized.includes("authorized representative") ||
+      normalized === "representative") &&
+    !normalized.includes("title") &&
+    !normalized.includes("date")
+  );
 }
 
 let cachedGhlCustomFieldDefs: GhlCustomFieldDef[] = [];
@@ -312,6 +324,7 @@ function valueForFieldId(
   fields: GhlContactCustomField[],
   fieldId: string | undefined,
   keywords?: string[],
+  excludeKeywords?: string[],
 ): string {
   if (fieldId) {
     const match = fields.find(
@@ -329,7 +342,9 @@ function valueForFieldId(
       const matchingDefs = cachedGhlCustomFieldDefs.filter((d) => {
         const n = normalizeFieldName(d.name || "");
         const k = normalizeFieldName(d.fieldKey || "");
-        return keywords.some((kw) => n.includes(kw) || k.includes(kw));
+        const matches = keywords.some((kw) => n.includes(kw) || k.includes(kw));
+        const excluded = excludeKeywords?.some((ex) => n.includes(ex) || k.includes(ex));
+        return matches && !excluded;
       });
       for (const def of matchingDefs) {
         if (!def.id) continue;
@@ -347,7 +362,11 @@ function valueForFieldId(
     for (const field of fields) {
       const raw = field as Record<string, unknown>;
       const name = normalizeFieldName(String(raw.name || raw.fieldKey || raw.key || raw.field_key || ""));
-      if (name && keywords.some((kw) => name.includes(kw))) {
+      if (
+        name &&
+        keywords.some((kw) => name.includes(kw)) &&
+        !excludeKeywords?.some((ex) => name.includes(ex))
+      ) {
         const val = stringifyFieldValue(raw.value ?? raw.field_value);
         if (val) return val;
       }
@@ -566,9 +585,29 @@ export async function getGhlRepresentativeDetails(
     const setupFee = formatFeeDisplay(rawSetupFee);
 
     return {
-      name: cleanGhlString(valueForFieldId(fields, ids.name, ["authorized representative", "representative name", "representative"])),
-      title: cleanGhlString(valueForFieldId(fields, ids.title, ["representative title", "title"])),
-      date: cleanGhlString(valueForFieldId(fields, ids.date, ["company authorization date", "representative date", "date"])),
+      name: cleanGhlString(
+        valueForFieldId(
+          fields,
+          ids.name,
+          ["representative name", "authorized representative", "rep name"],
+          ["title", "date"],
+        ),
+      ),
+      title: cleanGhlString(
+        valueForFieldId(
+          fields,
+          ids.title,
+          ["representative title", "rep title", "title"],
+          ["date"],
+        ),
+      ),
+      date: cleanGhlString(
+        valueForFieldId(
+          fields,
+          ids.date,
+          ["company authorization date", "representative date", "rep date", "authorization date"],
+        ),
+      ),
       businessesCovered: cleanGhlString(businessesCovered),
       selectedServices,
       businessName: cleanGhlString(companyName),
