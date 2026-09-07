@@ -132,9 +132,18 @@ function normalizeFieldName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+export function cleanGhlString(value?: string | null): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (/^(null|undefined|none|n\/a)$/i.test(trimmed)) return "";
+  return trimmed;
+}
+
 function stringifyFieldValue(value: unknown): string {
   if (value == null) return "";
-  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  if (typeof value === "string" || typeof value === "number") {
+    return cleanGhlString(String(value));
+  }
   if (Array.isArray(value)) {
     return value.map((item) => stringifyFieldValue(item)).filter(Boolean).join(", ");
   }
@@ -557,21 +566,21 @@ export async function getGhlRepresentativeDetails(
     const setupFee = formatFeeDisplay(rawSetupFee);
 
     return {
-      name: valueForFieldId(fields, ids.name, ["authorized representative", "representative name", "representative"]),
-      title: valueForFieldId(fields, ids.title, ["representative title", "title"]),
-      date: valueForFieldId(fields, ids.date, ["company authorization date", "representative date", "date"]),
-      businessesCovered,
+      name: cleanGhlString(valueForFieldId(fields, ids.name, ["authorized representative", "representative name", "representative"])),
+      title: cleanGhlString(valueForFieldId(fields, ids.title, ["representative title", "title"])),
+      date: cleanGhlString(valueForFieldId(fields, ids.date, ["company authorization date", "representative date", "date"])),
+      businessesCovered: cleanGhlString(businessesCovered),
       selectedServices,
-      businessName: companyName,
-      businessAddress,
-      taxPeriod,
-      monthlyFee,
-      setupFee,
-      paymentSchedule: valueForFieldId(fields, ids.paymentSchedule, ["payment schedule", "payment_schedule"]),
-      paymentMethod: valueForFieldId(fields, ids.paymentMethod, ["payment method", "payment_method"]),
-      serviceStartDate: valueForFieldId(fields, ids.serviceStartDate, ["service start date", "start date", "service_start_date"]),
-      serviceEndDate: valueForFieldId(fields, ids.serviceEndDate, ["service end date", "end date", "service_end_date"]),
-      serviceDescription: valueForFieldId(fields, ids.serviceDescription, ["service description", "description notes", "service notes", "service_description"]),
+      businessName: cleanGhlString(companyName),
+      businessAddress: cleanGhlString(businessAddress),
+      taxPeriod: cleanGhlString(taxPeriod),
+      monthlyFee: cleanGhlString(monthlyFee),
+      setupFee: cleanGhlString(setupFee),
+      paymentSchedule: cleanGhlString(valueForFieldId(fields, ids.paymentSchedule, ["payment schedule", "payment_schedule"])),
+      paymentMethod: cleanGhlString(valueForFieldId(fields, ids.paymentMethod, ["payment method", "payment_method"])),
+      serviceStartDate: cleanGhlString(valueForFieldId(fields, ids.serviceStartDate, ["service start date", "start date", "service_start_date"])),
+      serviceEndDate: cleanGhlString(valueForFieldId(fields, ids.serviceEndDate, ["service end date", "end date", "service_end_date"])),
+      serviceDescription: cleanGhlString(valueForFieldId(fields, ids.serviceDescription, ["service description", "description notes", "service notes", "service_description"])),
     };
   } catch (error) {
     logWarn("ghl.representative_lookup_failed", {

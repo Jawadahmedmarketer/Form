@@ -15,7 +15,7 @@ import {
 } from "@/lib/agreement";
 import { normalizeSelectedServices } from "@/config/services";
 import { createAgreementInvoice } from "@/lib/ghl-invoice";
-import { getGhlRepresentativeDetails, syncSignedAgreementToGhl } from "@/lib/ghl";
+import { cleanGhlString, getGhlRepresentativeDetails, syncSignedAgreementToGhl } from "@/lib/ghl";
 import { formatLongDate } from "@/lib/dates";
 import { fingerprintAgreementContent, sha256Hex } from "@/lib/hashing";
 import { getClientIp, getUserAgent, maskIp } from "@/lib/ip";
@@ -177,9 +177,13 @@ export async function POST(
   const representativeDate = signedAt.toISOString().slice(0, 10);
 
   const representativeName =
-    fromGhl.name || claimed.representative_name || REPRESENTATIVE.printedName;
+    cleanGhlString(fromGhl.name) ||
+    cleanGhlString(claimed.representative_name) ||
+    REPRESENTATIVE.printedName;
   const representativeTitle =
-    fromGhl.title || claimed.representative_title || REPRESENTATIVE.title;
+    cleanGhlString(fromGhl.title) ||
+    cleanGhlString(claimed.representative_title) ||
+    REPRESENTATIVE.title;
 
   try {
     const clientSignature = dataUrlToBuffer(values.clientSignature);

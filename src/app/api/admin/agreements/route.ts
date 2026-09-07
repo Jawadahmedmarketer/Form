@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAgreement, getAppUrl, listAgreements, updateGhlSync } from "@/lib/agreement";
 import { requireAdminMutation, requireAdminRead } from "@/lib/admin-auth";
-import { getGhlRepresentativeDetails, syncAgreementLinkToGhl, uploadSignedPdfToGhl } from "@/lib/ghl";
+import { cleanGhlString, getGhlRepresentativeDetails, syncAgreementLinkToGhl, uploadSignedPdfToGhl } from "@/lib/ghl";
 import { logError, logWarn } from "@/lib/logger";
 import { generateSigningCoverPdf } from "@/lib/pdf";
 import { createAgreementSchema } from "@/lib/validation";
@@ -50,27 +50,29 @@ export async function POST(request: NextRequest) {
     const input = { ...parsed.data };
     if (input.ghlContactId) {
       const fromGhl = await getGhlRepresentativeDetails(input.ghlContactId);
-      if (!input.representativeName && fromGhl.name) input.representativeName = fromGhl.name;
-      if (!input.representativeTitle && fromGhl.title) input.representativeTitle = fromGhl.title;
-      if (!input.businessesCovered && fromGhl.businessesCovered) input.businessesCovered = fromGhl.businessesCovered;
+      const repName = cleanGhlString(fromGhl.name);
+      const repTitle = cleanGhlString(fromGhl.title);
+      if (!cleanGhlString(input.representativeName) && repName) input.representativeName = repName;
+      if (!cleanGhlString(input.representativeTitle) && repTitle) input.representativeTitle = repTitle;
+      if (!cleanGhlString(input.businessesCovered) && cleanGhlString(fromGhl.businessesCovered)) input.businessesCovered = cleanGhlString(fromGhl.businessesCovered);
       if ((!input.selectedServices || input.selectedServices.length === 0) && fromGhl.selectedServices?.length) {
         input.selectedServices = fromGhl.selectedServices;
       }
-      if (!input.businessName && fromGhl.businessName) input.businessName = fromGhl.businessName;
-      if (!input.businessAddress && fromGhl.businessAddress) input.businessAddress = fromGhl.businessAddress;
-      if (!input.taxPeriod && fromGhl.taxPeriod) input.taxPeriod = fromGhl.taxPeriod;
-      if (!input.monthlyFee && fromGhl.monthlyFee) input.monthlyFee = fromGhl.monthlyFee;
-      if (!input.setupFee && fromGhl.setupFee) input.setupFee = fromGhl.setupFee;
-      if (!input.serviceStartDate && fromGhl.serviceStartDate) input.serviceStartDate = fromGhl.serviceStartDate;
-      if ((!input.serviceEndDate || input.serviceEndDate === "Ongoing — no fixed end date") && fromGhl.serviceEndDate) {
-        input.serviceEndDate = fromGhl.serviceEndDate;
+      if (!cleanGhlString(input.businessName) && cleanGhlString(fromGhl.businessName)) input.businessName = cleanGhlString(fromGhl.businessName);
+      if (!cleanGhlString(input.businessAddress) && cleanGhlString(fromGhl.businessAddress)) input.businessAddress = cleanGhlString(fromGhl.businessAddress);
+      if (!cleanGhlString(input.taxPeriod) && cleanGhlString(fromGhl.taxPeriod)) input.taxPeriod = cleanGhlString(fromGhl.taxPeriod);
+      if (!cleanGhlString(input.monthlyFee) && cleanGhlString(fromGhl.monthlyFee)) input.monthlyFee = cleanGhlString(fromGhl.monthlyFee);
+      if (!cleanGhlString(input.setupFee) && cleanGhlString(fromGhl.setupFee)) input.setupFee = cleanGhlString(fromGhl.setupFee);
+      if (!cleanGhlString(input.serviceStartDate) && cleanGhlString(fromGhl.serviceStartDate)) input.serviceStartDate = cleanGhlString(fromGhl.serviceStartDate);
+      if ((!cleanGhlString(input.serviceEndDate) || input.serviceEndDate === "Ongoing — no fixed end date") && cleanGhlString(fromGhl.serviceEndDate)) {
+        input.serviceEndDate = cleanGhlString(fromGhl.serviceEndDate);
       }
-      if (!input.serviceDescription && fromGhl.serviceDescription) input.serviceDescription = fromGhl.serviceDescription;
-      if ((!input.paymentSchedule || input.paymentSchedule === "Setup due on signing; monthly thereafter") && fromGhl.paymentSchedule) {
-        input.paymentSchedule = fromGhl.paymentSchedule;
+      if (!cleanGhlString(input.serviceDescription) && cleanGhlString(fromGhl.serviceDescription)) input.serviceDescription = cleanGhlString(fromGhl.serviceDescription);
+      if ((!cleanGhlString(input.paymentSchedule) || input.paymentSchedule === "Setup due on signing; monthly thereafter") && cleanGhlString(fromGhl.paymentSchedule)) {
+        input.paymentSchedule = cleanGhlString(fromGhl.paymentSchedule);
       }
-      if ((!input.paymentMethod || input.paymentMethod === "Card / bank payment via secure payment link") && fromGhl.paymentMethod) {
-        input.paymentMethod = fromGhl.paymentMethod;
+      if ((!cleanGhlString(input.paymentMethod) || input.paymentMethod === "Card / bank payment via secure payment link") && cleanGhlString(fromGhl.paymentMethod)) {
+        input.paymentMethod = cleanGhlString(fromGhl.paymentMethod);
       }
     }
 

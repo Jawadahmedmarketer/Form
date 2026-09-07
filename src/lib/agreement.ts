@@ -9,9 +9,18 @@ import type { AgreementRow, FieldLocks, PublicAgreement } from "@/lib/supabase/t
 import { createPublicToken } from "@/lib/tokens";
 import type { AdminCreateFormInput, CreateAgreementInput } from "@/lib/validation";
 
+export function cleanString(value?: string | null): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (/^(null|undefined|none|n\/a)$/i.test(trimmed)) return "";
+  return trimmed;
+}
+
 function emptyToNull(value?: string | null) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (/^(null|undefined|none|n\/a)$/i.test(trimmed)) return null;
+  return trimmed || null;
 }
 
 export function toPublicAgreement(
@@ -25,40 +34,41 @@ export function toPublicAgreement(
   locks.taxPeriod = "locked";
   locks.selectedServices = "locked";
 
+  const repName = cleanString(row.representative_name) || REPRESENTATIVE.printedName;
+  const repTitle = cleanString(row.representative_title) || REPRESENTATIVE.title;
+
   return {
     publicToken: row.public_token,
     status: row.status,
-    firstName: row.first_name ?? "",
-    lastName: row.last_name ?? "",
-    businessName: row.business_name ?? "",
-    email: row.email ?? "",
-    phone: row.phone ?? "",
-    businessAddress: row.business_address ?? "",
-    taxPeriod: formatTaxPeriod(row.tax_period) || row.tax_period || "",
-    agreementDate: row.agreement_date ?? "",
-    businessesCovered: row.businesses_covered ?? "",
+    firstName: cleanString(row.first_name),
+    lastName: cleanString(row.last_name),
+    businessName: cleanString(row.business_name),
+    email: cleanString(row.email),
+    phone: cleanString(row.phone),
+    businessAddress: cleanString(row.business_address),
+    taxPeriod: formatTaxPeriod(row.tax_period) || cleanString(row.tax_period),
+    agreementDate: cleanString(row.agreement_date),
+    businessesCovered: cleanString(row.businesses_covered),
     selectedServices: normalizeSelectedServices(row.selected_services),
-    otherService: row.other_service ?? "",
-    serviceDescription: row.service_description ?? "",
-    serviceStartDate: row.service_start_date ?? "",
+    otherService: cleanString(row.other_service),
+    serviceDescription: cleanString(row.service_description),
+    serviceStartDate: cleanString(row.service_start_date),
     serviceEndDate:
-      row.service_end_date && row.service_end_date !== "null" && row.service_end_date !== "undefined"
-        ? row.service_end_date
-        : "Ongoing — no fixed end date",
-    setupFee: row.setup_fee ?? "",
-    monthlyFee: row.monthly_fee ?? "",
-    setupFeeLabel: row.setup_fee_label ?? "",
-    monthlyFeeLabel: row.monthly_fee_label ?? "",
-    paymentSchedule: row.payment_schedule || "Setup due on signing; monthly thereafter",
-    paymentMethod: row.payment_method || "Card / bank payment via secure payment link",
+      cleanString(row.service_end_date) || "Ongoing — no fixed end date",
+    setupFee: cleanString(row.setup_fee),
+    monthlyFee: cleanString(row.monthly_fee),
+    setupFeeLabel: cleanString(row.setup_fee_label),
+    monthlyFeeLabel: cleanString(row.monthly_fee_label),
+    paymentSchedule: cleanString(row.payment_schedule) || "Setup due on signing; monthly thereafter",
+    paymentMethod: cleanString(row.payment_method) || "Card / bank payment via secure payment link",
     fieldLocks: locks,
-    representativeName: row.representative_name || REPRESENTATIVE.printedName,
-    representativeTitle: row.representative_title || REPRESENTATIVE.title,
-    representativeDate: row.representative_date ?? "",
+    representativeName: repName,
+    representativeTitle: repTitle,
+    representativeDate: cleanString(row.representative_date),
     representativeSignatureDataUrl,
-    clientPrintedName: row.client_printed_name ?? "",
-    clientTitle: row.client_title ?? "",
-    clientSignedDate: row.client_signed_date ?? "",
+    clientPrintedName: cleanString(row.client_printed_name),
+    clientTitle: cleanString(row.client_title),
+    clientSignedDate: cleanString(row.client_signed_date),
   };
 }
 

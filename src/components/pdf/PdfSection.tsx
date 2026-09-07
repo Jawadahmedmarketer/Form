@@ -159,12 +159,19 @@ export function PdfSection({
   );
 }
 
+function cleanPdfVal(value?: string | null): string {
+  if (!value) return " ";
+  const trimmed = value.trim();
+  if (!trimmed || /^(null|undefined|none|n\/a)$/i.test(trimmed)) return " ";
+  return trimmed;
+}
+
 export function PdfField({ label, value }: { label: string; value?: string | null }) {
   return (
     <View wrap={false} style={pdfStyles.field}>
       <Text style={pdfStyles.label}>{label}</Text>
       <View style={pdfStyles.valueBox}>
-        <Text style={{ width: "100%" }}>{value || " "}</Text>
+        <Text style={{ width: "100%" }}>{cleanPdfVal(value)}</Text>
       </View>
     </View>
   );
@@ -175,7 +182,7 @@ export function PdfLineField({ label, value }: { label: string; value?: string |
     <View wrap={false} style={{ marginBottom: 8, width: "100%" }}>
       <Text style={pdfStyles.label}>{label}</Text>
       <View style={pdfStyles.valueBox}>
-        <Text style={{ width: "100%" }}>{value || " "}</Text>
+        <Text style={{ width: "100%" }}>{cleanPdfVal(value)}</Text>
       </View>
     </View>
   );

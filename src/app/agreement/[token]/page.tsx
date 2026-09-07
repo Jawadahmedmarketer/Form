@@ -9,7 +9,7 @@ import {
   markAgreementViewed,
   toPublicAgreement,
 } from "@/lib/agreement";
-import { getGhlRepresentativeDetails } from "@/lib/ghl";
+import { cleanGhlString, getGhlRepresentativeDetails } from "@/lib/ghl";
 import { getAuthorizedSignatureDataUrl } from "@/lib/representative-signature";
 import { SIGNATURE_BUCKET } from "@/lib/supabase/admin";
 import { isLikelyToken } from "@/lib/tokens";
@@ -71,25 +71,28 @@ export default async function AgreementPage({
 
   const viewed = await markAgreementViewed(row);
   const fromGhl = await getGhlRepresentativeDetails(viewed.ghl_contact_id);
-  if (fromGhl.name) viewed.representative_name = fromGhl.name;
-  if (fromGhl.title) viewed.representative_title = fromGhl.title;
-  if (fromGhl.businessesCovered?.trim()) viewed.businesses_covered = fromGhl.businessesCovered;
+  const ghlRepName = cleanGhlString(fromGhl.name);
+  const ghlRepTitle = cleanGhlString(fromGhl.title);
+  if (ghlRepName) viewed.representative_name = ghlRepName;
+  if (ghlRepTitle) viewed.representative_title = ghlRepTitle;
+  if (cleanGhlString(fromGhl.businessesCovered)) viewed.businesses_covered = cleanGhlString(fromGhl.businessesCovered);
   if (fromGhl.selectedServices?.length) viewed.selected_services = fromGhl.selectedServices;
-  if (fromGhl.businessName) viewed.business_name = fromGhl.businessName;
-  if (fromGhl.businessAddress) viewed.business_address = fromGhl.businessAddress;
-  if (fromGhl.taxPeriod) viewed.tax_period = fromGhl.taxPeriod;
-  if (fromGhl.monthlyFee) viewed.monthly_fee = fromGhl.monthlyFee;
-  if (fromGhl.setupFee) viewed.setup_fee = fromGhl.setupFee;
-  if (fromGhl.paymentSchedule) viewed.payment_schedule = fromGhl.paymentSchedule;
-  if (fromGhl.paymentMethod) viewed.payment_method = fromGhl.paymentMethod;
-  if (fromGhl.serviceStartDate) viewed.service_start_date = fromGhl.serviceStartDate;
-  if (fromGhl.serviceEndDate) viewed.service_end_date = fromGhl.serviceEndDate;
-  if (fromGhl.serviceDescription) viewed.service_description = fromGhl.serviceDescription;
+  if (cleanGhlString(fromGhl.businessName)) viewed.business_name = cleanGhlString(fromGhl.businessName);
+  if (cleanGhlString(fromGhl.businessAddress)) viewed.business_address = cleanGhlString(fromGhl.businessAddress);
+  if (cleanGhlString(fromGhl.taxPeriod)) viewed.tax_period = cleanGhlString(fromGhl.taxPeriod);
+  if (cleanGhlString(fromGhl.monthlyFee)) viewed.monthly_fee = cleanGhlString(fromGhl.monthlyFee);
+  if (cleanGhlString(fromGhl.setupFee)) viewed.setup_fee = cleanGhlString(fromGhl.setupFee);
+  if (cleanGhlString(fromGhl.paymentSchedule)) viewed.payment_schedule = cleanGhlString(fromGhl.paymentSchedule);
+  if (cleanGhlString(fromGhl.paymentMethod)) viewed.payment_method = cleanGhlString(fromGhl.paymentMethod);
+  if (cleanGhlString(fromGhl.serviceStartDate)) viewed.service_start_date = cleanGhlString(fromGhl.serviceStartDate);
+  if (cleanGhlString(fromGhl.serviceEndDate)) viewed.service_end_date = cleanGhlString(fromGhl.serviceEndDate);
+  if (cleanGhlString(fromGhl.serviceDescription)) viewed.service_description = cleanGhlString(fromGhl.serviceDescription);
 
+  const effectiveRepName = cleanGhlString(viewed.representative_name);
   const representativeSignatureDataUrl =
     (viewed.representative_signature_path
       ? await downloadStorageDataUrl(SIGNATURE_BUCKET, viewed.representative_signature_path, "image/png")
-      : null) ?? (await getAuthorizedSignatureDataUrl(viewed.representative_name || undefined));
+      : null) ?? (await getAuthorizedSignatureDataUrl(effectiveRepName || undefined));
   const agreement = toPublicAgreement(viewed, representativeSignatureDataUrl);
 
   return (
