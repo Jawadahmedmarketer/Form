@@ -232,13 +232,14 @@ export function AdminCreateForm({
               </FormField>
               <FormField label="Representative name" error={errors.representativeName?.message}>
                 <TextInput
+                  placeholder="Sebastian Wills"
                   error={errors.representativeName?.message}
                   {...register("representativeName")}
                 />
               </FormField>
               <FormField label="Representative title" error={errors.representativeTitle?.message}>
                 <TextInput
-                  placeholder="Senior Advisor"
+                  placeholder="Client Consultant"
                   error={errors.representativeTitle?.message}
                   {...register("representativeTitle")}
                 />
@@ -249,7 +250,7 @@ export function AdminCreateForm({
                 </p>
                 <div className="flex min-h-[96px] items-center justify-center rounded-md border border-slate-200 bg-[#f8fafc] px-4 py-6">
                   <span className={`${signatureFont.className} text-4xl text-[#111827]`}>
-                    {representativeName || "Representative name"}
+                    {representativeName || "Sebastian Wills"}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-[#475569]">

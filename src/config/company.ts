@@ -14,8 +14,8 @@ export const COMPANY = {
 export const COMPANY_ADDRESS_SINGLE_LINE = `${COMPANY.addressLine1}, ${COMPANY.addressLine2}`;
 
 export const REPRESENTATIVE = {
-  printedName: "",
-  title: "",
+  printedName: "Sebastian Wills",
+  title: "Client Consultant",
   /**
    * pre_authorized: use the approved signature asset on file
    * manual: captured later by an authorized user
