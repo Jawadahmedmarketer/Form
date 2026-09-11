@@ -40,8 +40,11 @@ export async function POST(request: NextRequest) {
 
   const parsed = createAgreementSchema.safeParse(json);
   if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const fieldPath = issue?.path?.join(".") || "data";
+    const message = issue?.message || "Invalid agreement data.";
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message || "Invalid agreement data." },
+      { error: `${fieldPath}: ${message}`, details: parsed.error.issues },
       { status: 400 },
     );
   }
