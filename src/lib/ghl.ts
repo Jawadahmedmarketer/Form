@@ -232,7 +232,11 @@ async function ensureRepresentativeFieldIds() {
         (normalizeFieldName(label).includes("agreement signing link") ||
           normalizeFieldName(label).includes("agreement_signing_link") ||
           normalizeFieldName(label).includes("agreement link") ||
-          normalizeFieldName(label).includes("signing link"))
+          normalizeFieldName(label).includes("signing link") ||
+          normalizeFieldName(label).includes("sign link") ||
+          normalizeFieldName(label).includes("agreement url") ||
+          normalizeFieldName(label).includes("signing_link") ||
+          normalizeFieldName(label).includes("agreement_url"))
       ) {
         resolvedRepresentativeFieldIds.agreementLink = def.id;
       }
@@ -666,7 +670,7 @@ function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
 
   for (const [id, value] of pairs) {
     if (id && value) {
-      fields.push({ id, field_value: value });
+      fields.push({ id, field_value: value, value } as unknown as { id: string; field_value: string });
     }
   }
 
