@@ -192,13 +192,33 @@ async function ensureRepresentativeFieldIds() {
   if (!token || !locationId) return resolvedRepresentativeFieldIds;
 
   try {
-    const payload = (await ghlFetch(`/locations/${locationId}/customFields?model=contact`, token, {
+    let payload = (await ghlFetch(`/locations/${locationId}/customFields?model=contact`, token, {
       method: "GET",
-    })) as { customFields?: GhlCustomFieldDef[]; fields?: GhlCustomFieldDef[] };
-    const defs = payload.customFields || payload.fields || [];
+    })) as Record<string, unknown>;
+    let rawDefs = Array.isArray(payload)
+      ? payload
+      : (payload?.customFields || payload?.fields || payload?.data || []) as Record<string, unknown>[];
+
+    if (!rawDefs || rawDefs.length === 0) {
+      try {
+        const fallback = (await ghlFetch(`/locations/${locationId}/customFields`, token, {
+          method: "GET",
+        })) as Record<string, unknown>;
+        rawDefs = Array.isArray(fallback)
+          ? fallback
+          : (fallback?.customFields || fallback?.fields || fallback?.data || []) as Record<string, unknown>[];
+      } catch {}
+    }
+
+    const defs: GhlCustomFieldDef[] = rawDefs.map((d) => ({
+      id: String(d.id || d._id || d.fieldId || ""),
+      name: String(d.name || d.label || d.title || ""),
+      fieldKey: String(d.fieldKey || d.key || d.field_key || ""),
+    })).filter((d) => Boolean(d.id));
+
     cachedGhlCustomFieldDefs = defs;
     for (const def of defs) {
-      const label = `${def.name || ""} ${def.fieldKey || ""}`;
+      const label = `${def.name} ${def.fieldKey}`;
       if (!def.id) continue;
       if (!resolvedRepresentativeFieldIds.name && matchRepresentativeField(label, "name")) {
         resolvedRepresentativeFieldIds.name = def.id;
