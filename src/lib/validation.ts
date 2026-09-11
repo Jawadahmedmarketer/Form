@@ -68,30 +68,35 @@ export type SignAgreementInput = z.infer<typeof signAgreementSchema>;
 
 export const createAgreementSchema = z.preprocess((raw) => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
-  const obj = raw as Record<string, unknown>;
+  const obj = { ...(raw as Record<string, unknown>) };
   if (obj.selectedServices == null && obj.selected_services != null) {
-    return { ...obj, selectedServices: obj.selected_services };
+    obj.selectedServices = obj.selected_services;
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === null || value === "null" || value === "undefined") {
+      obj[key] = undefined;
+    }
   }
   return obj;
 }, z.object({
-  firstName: z.string().trim().max(80).optional().default(""),
-  lastName: z.string().trim().max(80).optional().default(""),
-  businessName: z.string().trim().max(160).optional().default(""),
+  firstName: z.string().trim().max(80).nullish().default(""),
+  lastName: z.string().trim().max(80).nullish().default(""),
+  businessName: z.string().trim().max(160).nullish().default(""),
   email: z
     .string()
     .trim()
     .refine((value) => value === "" || z.string().email().safeParse(value).success, "Enter a valid email address.")
-    .optional()
+    .nullish()
     .default(""),
-  phone: z.string().trim().max(25).optional().default(""),
-  businessAddress: z.string().trim().max(2000).optional().default(""),
-  taxPeriod: z.string().trim().max(200).optional().default(""),
-  agreementDate: z.string().trim().optional().default(""),
-  businessesCovered: z.string().trim().max(4000).optional().default(""),
-  selectedServices: preprocessSelectedServices(selectedServiceIdList).optional().default([]),
-  otherService: z.string().trim().max(2000).optional().default(""),
-  representativeName: z.string().trim().max(80).optional().default(""),
-  representativeTitle: z.string().trim().max(80).optional().default(""),
+  phone: z.string().trim().max(25).nullish().default(""),
+  businessAddress: z.string().trim().max(2000).nullish().default(""),
+  taxPeriod: z.string().trim().max(200).nullish().default(""),
+  agreementDate: z.string().trim().nullish().default(""),
+  businessesCovered: z.string().trim().max(4000).nullish().default(""),
+  selectedServices: preprocessSelectedServices(selectedServiceIdList).nullish().default([]),
+  otherService: z.string().trim().max(2000).nullish().default(""),
+  representativeName: z.string().trim().max(80).nullish().default(""),
+  representativeTitle: z.string().trim().max(80).nullish().default(""),
   representativeSignature: z
     .string()
     .trim()
@@ -99,22 +104,22 @@ export const createAgreementSchema = z.preprocess((raw) => {
       (value) => value === "" || value.startsWith("data:image/png;base64,"),
       "Signature must be a PNG image.",
     )
-    .optional()
+    .nullish()
     .default(""),
-  serviceDescription: z.string().trim().max(4000).optional().default(""),
-  serviceStartDate: z.string().trim().optional().default(""),
-  serviceEndDate: z.string().trim().optional().default("Ongoing — no fixed end date"),
-  setupFee: z.string().trim().max(80).optional().default(""),
-  monthlyFee: z.string().trim().max(80).optional().default(""),
-  setupFeeLabel: z.string().trim().max(4000).optional().default(""),
-  monthlyFeeLabel: z.string().trim().max(4000).optional().default(""),
-  paymentSchedule: z.string().trim().max(200).optional().default("Setup due on signing; monthly thereafter"),
-  paymentMethod: z.string().trim().max(200).optional().default("Card / bank payment via secure payment link"),
-  ghlContactId: z.string().trim().max(80).optional().default(""),
-  paymentUrl: z.string().trim().url().optional().or(z.literal("")).default(""),
-  expiresAt: z.string().trim().optional().default(""),
+  serviceDescription: z.string().trim().max(4000).nullish().default(""),
+  serviceStartDate: z.string().trim().nullish().default(""),
+  serviceEndDate: z.string().trim().nullish().default("Ongoing — no fixed end date"),
+  setupFee: z.string().trim().max(80).nullish().default(""),
+  monthlyFee: z.string().trim().max(80).nullish().default(""),
+  setupFeeLabel: z.string().trim().max(4000).nullish().default(""),
+  monthlyFeeLabel: z.string().trim().max(4000).nullish().default(""),
+  paymentSchedule: z.string().trim().max(200).nullish().default("Setup due on signing; monthly thereafter"),
+  paymentMethod: z.string().trim().max(200).nullish().default("Card / bank payment via secure payment link"),
+  ghlContactId: z.string().trim().max(80).nullish().default(""),
+  paymentUrl: z.string().trim().url().optional().or(z.literal("")).nullish().default(""),
+  expiresAt: z.string().trim().nullish().default(""),
   fieldLocks: z.record(z.enum(["editable", "prefilled_editable", "locked"])).optional(),
-  status: z.enum(["draft", "sent"]).optional().default("sent"),
+  status: z.enum(["draft", "sent"]).nullish().default("sent"),
 }));
 
 export type CreateAgreementInput = z.infer<typeof createAgreementSchema>;
