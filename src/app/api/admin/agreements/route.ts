@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAgreement, getAppUrl, listAgreements, updateGhlSync } from "@/lib/agreement";
 import { requireAdminMutation, requireAdminRead } from "@/lib/admin-auth";
 import { cleanGhlString, getGhlRepresentativeDetails, syncAgreementLinkToGhl, uploadSignedPdfToGhl } from "@/lib/ghl";
+import { REPRESENTATIVE } from "@/config/company";
 import { logError, logWarn } from "@/lib/logger";
 import { generateSigningCoverPdf } from "@/lib/pdf";
 import { createAgreementSchema } from "@/lib/validation";
@@ -55,6 +56,10 @@ export async function POST(request: NextRequest) {
       const fromGhl = await getGhlRepresentativeDetails(input.ghlContactId);
       const repName = cleanGhlString(fromGhl.name);
       const repTitle = cleanGhlString(fromGhl.title);
+      if (!cleanGhlString(input.firstName) && cleanGhlString(fromGhl.firstName)) input.firstName = cleanGhlString(fromGhl.firstName);
+      if (!cleanGhlString(input.lastName) && cleanGhlString(fromGhl.lastName)) input.lastName = cleanGhlString(fromGhl.lastName);
+      if (!cleanGhlString(input.email) && cleanGhlString(fromGhl.email)) input.email = cleanGhlString(fromGhl.email);
+      if (!cleanGhlString(input.phone) && cleanGhlString(fromGhl.phone)) input.phone = cleanGhlString(fromGhl.phone);
       if (!cleanGhlString(input.representativeName) && repName) input.representativeName = repName;
       if (!cleanGhlString(input.representativeTitle) && repTitle) input.representativeTitle = repTitle;
       if (!cleanGhlString(input.businessesCovered) && cleanGhlString(fromGhl.businessesCovered)) input.businessesCovered = cleanGhlString(fromGhl.businessesCovered);
@@ -77,6 +82,13 @@ export async function POST(request: NextRequest) {
       if ((!cleanGhlString(input.paymentMethod) || input.paymentMethod === "Card / bank payment via secure payment link") && cleanGhlString(fromGhl.paymentMethod)) {
         input.paymentMethod = cleanGhlString(fromGhl.paymentMethod);
       }
+    }
+
+    if (!cleanGhlString(input.representativeName)) {
+      input.representativeName = REPRESENTATIVE.printedName;
+    }
+    if (!cleanGhlString(input.representativeTitle)) {
+      input.representativeTitle = REPRESENTATIVE.title;
     }
 
     const row = await createAgreement(input);

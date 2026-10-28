@@ -7,6 +7,7 @@ import {
 } from "@/config/ghl-fields";
 import { formatBusinesses, type BusinessItem } from "@/lib/business-builder";
 import { formatSelectedServices, normalizeSelectedServices } from "@/config/services";
+import { REPRESENTATIVE } from "@/config/company";
 import { getAppUrl } from "@/lib/agreement";
 import { formatTaxPeriod } from "@/lib/dates";
 import { logError, logInfo, logWarn } from "@/lib/logger";
@@ -85,6 +86,10 @@ export type GhlRepresentativeDetails = {
   name: string;
   title: string;
   date: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
   businessesCovered?: string;
   selectedServices?: string[];
   businessName?: string;
@@ -420,6 +425,10 @@ export async function getGhlRepresentativeDetails(
     const fields = payload.contact?.customFields || payload.customFields || [];
 
     const contactObj = (payload.contact || payload || {}) as Record<string, unknown>;
+    const firstName = cleanGhlString(String(contactObj.firstName || contactObj.first_name || ""));
+    const lastName = cleanGhlString(String(contactObj.lastName || contactObj.last_name || ""));
+    const email = cleanGhlString(String(contactObj.email || ""));
+    const phone = cleanGhlString(String(contactObj.phone || ""));
     const companyName = String(
       contactObj.companyName ||
       contactObj.company_name ||
@@ -609,6 +618,10 @@ export async function getGhlRepresentativeDetails(
     const setupFee = formatFeeDisplay(rawSetupFee);
 
     return {
+      firstName,
+      lastName,
+      email,
+      phone,
       name: cleanGhlString(
         valueForFieldId(
           fields,
@@ -667,6 +680,10 @@ function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
     Array.isArray(row.selected_services) ? row.selected_services : [],
   ).join(", ");
 
+  const repName = cleanGhlString(row.representative_name) || REPRESENTATIVE.printedName;
+  const repTitle = cleanGhlString(row.representative_title) || REPRESENTATIVE.title;
+  const signingLink = row.public_token ? `${getAppUrl()}/agreement/${row.public_token}` : "";
+
   const pairs: [string | undefined, string][] = [
     [mapping.agreementStatus, agreementStatusFor(row, phase)],
     [mapping.agreementSignedDate, phase === "signed" ? row.signed_at || row.client_signed_date || "" : ""],
@@ -674,12 +691,9 @@ function customFieldsFor(row: AgreementRow, phase: GhlSyncPhase = "signed") {
     [mapping.selectedServices, selected],
     [mapping.setupFee, row.setup_fee || ""],
     [mapping.monthlyFee, row.monthly_fee || ""],
-    [
-      mapping.agreementLink || resolved?.agreementLink,
-      row.public_token ? `${getAppUrl()}/agreement/${row.public_token}` : "",
-    ],
-    [mapping.representativeName || resolved?.name, row.representative_name || ""],
-    [mapping.representativeTitle || resolved?.title, row.representative_title || ""],
+    [mapping.agreementLink || resolved?.agreementLink, signingLink],
+    [mapping.representativeName || resolved?.name, repName],
+    [mapping.representativeTitle || resolved?.title, repTitle],
     [
       mapping.representativeDate || resolved?.date,
       phase === "signed"
@@ -714,13 +728,13 @@ export async function upsertGhlContact(row: AgreementRow, phase: GhlSyncPhase = 
   await ensureRepresentativeFieldIds();
 
   const fields: Record<string, unknown> = {
-    firstName: row.first_name || "",
-    lastName: row.last_name || "",
-    email: row.email || undefined,
-    phone: row.phone || undefined,
-    companyName: row.business_name || undefined,
     customFields: customFieldsFor(row, phase),
   };
+  if (cleanGhlString(row.first_name)) fields.firstName = cleanGhlString(row.first_name);
+  if (cleanGhlString(row.last_name)) fields.lastName = cleanGhlString(row.last_name);
+  if (cleanGhlString(row.email)) fields.email = cleanGhlString(row.email);
+  if (cleanGhlString(row.phone)) fields.phone = cleanGhlString(row.phone);
+  if (cleanGhlString(row.business_name)) fields.companyName = cleanGhlString(row.business_name);
 
   if (row.ghl_contact_id) {
     const updated = await ghlFetch(`/contacts/${row.ghl_contact_id}`, token, {
@@ -1007,7 +1021,7 @@ export async function syncAgreementLinkToGhl(row: AgreementRow) {
   try {
     const contactResult = await upsertGhlContact(row, "draft");
     const contactId = contactResult.contactId || null;
-    const linkField = getGhlFieldMapping().agreementLink;
+    const linkField = getGhlFieldMapping().agreementLink || resolvedRepresentativeFieldIds?.agreementLink;
     const note = contactResult.skipped
       ? "Contact sync was skipped."
       : linkField
